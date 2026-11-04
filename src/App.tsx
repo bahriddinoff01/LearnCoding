@@ -1,7 +1,10 @@
 import { Route, Routes } from 'react-router-dom'
 import ProtectedRoute from './auth/ProtectedRoute'
 import Layout from './components/Layout'
+import AiInstructorPage from './pages/AiInstructorPage'
 import AuthPage from './pages/AuthPage'
+import FaqPage from './pages/FaqPage'
+import HowItWorksPage from './pages/HowItWorksPage'
 import Home from './pages/Home'
 import LessonPage from './pages/LessonPage'
 import NotFound from './pages/NotFound'
@@ -15,6 +18,9 @@ export default function App() {
         {/* Public pages */}
         <Route index element={<Home />} />
         <Route path="tracks" element={<Tracks />} />
+        <Route path="how-it-works" element={<HowItWorksPage />} />
+        <Route path="ai-instructor" element={<AiInstructorPage />} />
+        <Route path="faq" element={<FaqPage />} />
         <Route path="login" element={<AuthPage mode="login" />} />
         <Route path="signup" element={<AuthPage mode="signup" />} />
 

@@ -2,6 +2,7 @@ import Editor from '@monaco-editor/react'
 import { useEffect, useMemo, useState } from 'react'
 import { Link, Navigate, useParams } from 'react-router-dom'
 import { Logo } from '../components/Layout'
+import InstructorChat from '../components/InstructorChat'
 import ThemeToggle from '../components/ThemeToggle'
 import { flatLessons, getTrack } from '../data/tracks'
 import type { Check, ContentBlock, Lesson, Track } from '../data/types'
@@ -73,6 +74,7 @@ function LessonView({ track, lesson }: { track: Track; lesson: Lesson }) {
   const [preview, setPreview] = useState(lesson.starterCode)
   const [results, setResults] = useState<boolean[] | null>(null)
   const [checking, setChecking] = useState(false)
+  const [aiOpen, setAiOpen] = useState(false)
   const progress = useProgress()
   const done = progress.isDone(track.id, lesson.id)
   const { theme } = useTheme()
@@ -111,12 +113,40 @@ function LessonView({ track, lesson }: { track: Track; lesson: Lesson }) {
           </Link>
         </div>
         <div className="flex items-center gap-2">
-          <span className="text-sm text-muted">
+          <span className="hidden text-sm text-muted sm:inline">
             Lesson {index + 1} of {lessons.length}
           </span>
+          <button
+            onClick={() => setAiOpen((o) => !o)}
+            aria-expanded={aiOpen}
+            className={`flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-semibold transition ${
+              aiOpen
+                ? 'bg-fuchsia-600 text-white'
+                : 'bg-fuchsia-500/10 text-fuchsia-700 hover:bg-fuchsia-500/20 dark:text-fuchsia-300'
+            }`}
+          >
+            ✨ <span>AI Instructor</span>
+          </button>
           <ThemeToggle />
         </div>
       </header>
+
+      {/* AI instructor side panel. It stays mounted so the chat survives closing. */}
+      <div
+        className={`fixed bottom-0 right-0 top-14 z-40 flex w-full flex-col border-l border-line bg-elevated shadow-2xl transition-transform duration-300 sm:w-[420px] ${
+          aiOpen ? 'translate-x-0' : 'pointer-events-none translate-x-full'
+        }`}
+        aria-hidden={!aiOpen}
+      >
+        <button
+          onClick={() => setAiOpen(false)}
+          className="absolute right-3 top-3 z-10 grid h-8 w-8 place-items-center rounded-lg text-muted hover:bg-surface hover:text-fg"
+          aria-label="Close AI instructor"
+        >
+          ✕
+        </button>
+        <InstructorChat ctx={{ lesson, code, results }} className="h-full [&>div:first-child]:pr-12" />
+      </div>
 
       <div className="grid flex-1 overflow-hidden lg:grid-cols-[minmax(320px,2fr)_3fr]">
         {/* Lesson content */}
@@ -161,6 +191,19 @@ function LessonView({ track, lesson }: { track: Track; lesson: Lesson }) {
               <div className="rounded-xl border border-emerald-400/30 bg-emerald-400/10 p-4 text-sm text-emerald-800 dark:text-emerald-100">
                 🎉 All checks passed. Nice work!
               </div>
+            )}
+
+            {results && !allPassed && (
+              <button
+                onClick={() => setAiOpen(true)}
+                className="flex w-full items-center gap-3 rounded-xl border border-fuchsia-500/30 bg-fuchsia-500/10 p-4 text-left text-sm transition hover:bg-fuchsia-500/15"
+              >
+                <span className="text-xl">✨</span>
+                <span>
+                  <span className="font-semibold">Stuck?</span>{' '}
+                  <span className="text-muted">Ask the AI instructor for a hint. It won't give away the answer.</span>
+                </span>
+              </button>
             )}
           </div>
 

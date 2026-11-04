@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { Link, NavLink, Outlet } from 'react-router-dom'
+import { Link, NavLink, Outlet, useLocation } from 'react-router-dom'
 import { useAuth } from '../auth/AuthProvider'
 import ThemeToggle from './ThemeToggle'
 
@@ -24,9 +24,9 @@ export function Logo() {
 
 const navItems = [
   { label: 'Tracks', to: '/tracks' },
-  { label: 'How it works', to: { pathname: '/', hash: '#how' } },
-  { label: 'AI Instructor', to: { pathname: '/', hash: '#ai' } },
-  { label: 'FAQ', to: { pathname: '/', hash: '#faq' } },
+  { label: 'How it works', to: '/how-it-works' },
+  { label: 'AI Instructor', to: '/ai-instructor' },
+  { label: 'FAQ', to: '/faq' },
 ]
 
 function Navbar() {
@@ -56,17 +56,11 @@ function Navbar() {
         <Logo />
 
         <div className="hidden items-center gap-1 md:flex">
-          {navItems.map((item) =>
-            typeof item.to === 'string' ? (
-              <NavLink key={item.label} to={item.to} className={linkClass}>
-                {item.label}
-              </NavLink>
-            ) : (
-              <Link key={item.label} to={item.to} className={linkClass({ isActive: false })}>
-                {item.label}
-              </Link>
-            ),
-          )}
+          {navItems.map((item) => (
+            <NavLink key={item.label} to={item.to} className={linkClass}>
+              {item.label}
+            </NavLink>
+          ))}
         </div>
 
         <div className="hidden items-center gap-2 md:flex">
@@ -170,15 +164,16 @@ const footerLinks = [
     title: 'Learn',
     links: [
       { label: 'HTML', to: '/tracks/html' },
+      { label: 'CSS', to: '/tracks/css' },
       { label: 'All tracks', to: '/tracks' },
-      { label: 'How it works', to: { pathname: '/', hash: '#how' } },
     ],
   },
   {
     title: 'Platform',
     links: [
-      { label: 'AI Instructor', to: { pathname: '/', hash: '#ai' } },
-      { label: 'FAQ', to: { pathname: '/', hash: '#faq' } },
+      { label: 'How it works', to: '/how-it-works' },
+      { label: 'AI Instructor', to: '/ai-instructor' },
+      { label: 'FAQ', to: '/faq' },
     ],
   },
 ]
@@ -216,9 +211,19 @@ function Footer() {
   )
 }
 
+// Start each new page at the top (links to #sections scroll themselves)
+function ScrollToTop() {
+  const { pathname, hash } = useLocation()
+  useEffect(() => {
+    if (!hash) window.scrollTo(0, 0)
+  }, [pathname, hash])
+  return null
+}
+
 export default function Layout() {
   return (
     <div className="flex min-h-full flex-col">
+      <ScrollToTop />
       <Navbar />
       <main className="flex-1">
         <Outlet />

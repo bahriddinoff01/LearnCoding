@@ -1,16 +1,8 @@
 import { Link } from 'react-router-dom'
 import { tracks } from '../../data/tracks'
+import { allFaqs } from '../../data/faq'
 import TrackCard from '../TrackCard'
-
-function Heading({ eyebrow, title, text }: { eyebrow: string; title: string; text?: string }) {
-  return (
-    <div className="mx-auto max-w-2xl text-center">
-      <div className="text-sm font-semibold uppercase tracking-wider text-brand-600 dark:text-brand-400">{eyebrow}</div>
-      <h2 className="mt-3 text-3xl font-bold tracking-tight sm:text-4xl">{title}</h2>
-      {text && <p className="mt-4 text-muted">{text}</p>}
-    </div>
-  )
-}
+import { Bubble, CtaBanner, Heading } from '../ui'
 
 /* ---------- Technologies strip ---------- */
 const tech = ['HTML', 'CSS', 'JavaScript', 'TypeScript', 'Python', 'React', 'SQL', 'Git']
@@ -66,6 +58,11 @@ export function HowItWorks() {
           </li>
         ))}
       </ol>
+      <div className="mt-12 text-center">
+        <Link to="/how-it-works" className="font-semibold text-brand-600 hover:underline dark:text-brand-400">
+          See the full learning journey →
+        </Link>
+      </div>
     </section>
   )
 }
@@ -77,28 +74,6 @@ const rules = [
   { title: 'Knows your code', text: 'It sees your project and your errors, so hints are specific.' },
   { title: 'Plain-language errors', text: 'Confusing error messages explained like a friend would.' },
 ]
-
-function Bubble({ from, children }: { from: 'you' | 'ai'; children: React.ReactNode }) {
-  const ai = from === 'ai'
-  return (
-    <div className={`flex gap-3 ${ai ? '' : 'flex-row-reverse'}`}>
-      <span
-        className={`grid h-8 w-8 shrink-0 place-items-center rounded-full text-xs font-bold ${
-          ai ? 'bg-gradient-to-br from-fuchsia-500 to-brand-500' : 'bg-slate-700 text-white'
-        }`}
-      >
-        {ai ? 'AI' : 'You'}
-      </span>
-      <div
-        className={`max-w-[80%] rounded-2xl px-4 py-3 text-sm leading-relaxed ${
-          ai ? 'rounded-tl-sm bg-surface-2 text-fg-soft' : 'rounded-tr-sm bg-brand-600 text-white'
-        }`}
-      >
-        {children}
-      </div>
-    </div>
-  )
-}
 
 export function AiInstructor() {
   return (
@@ -127,6 +102,9 @@ export function AiInstructor() {
               </div>
             ))}
           </div>
+          <Link to="/ai-instructor" className="mt-10 inline-block font-semibold text-fuchsia-600 hover:underline dark:text-fuchsia-400">
+            Try the AI instructor demo →
+          </Link>
         </div>
 
         <div className="rounded-2xl border border-line bg-elevated/80 p-5 shadow-2xl backdrop-blur">
@@ -190,35 +168,12 @@ export function TracksSection() {
 }
 
 /* ---------- FAQ ---------- */
-const faqs = [
-  {
-    q: 'Do I need any experience?',
-    a: 'No. The HTML track starts from zero. If you have never written code before, start there.',
-  },
-  {
-    q: 'Do I need to install anything?',
-    a: 'No. The editor, preview and tests all run in your browser. A laptop works best, but you can read lessons on your phone.',
-  },
-  {
-    q: 'Is it free?',
-    a: 'Yes, the lessons and exercises are free while we build the platform.',
-  },
-  {
-    q: 'Will the AI just give me the answers?',
-    a: 'No, on purpose. It gives hints in steps, asks guiding questions and points you to lessons. You always write the code yourself.',
-  },
-  {
-    q: 'What will I have at the end?',
-    a: 'A project for every section you finish, saved to your profile. Together they make a portfolio you can show employers.',
-  },
-]
-
 export function Faq() {
   return (
     <section id="faq" className="mx-auto max-w-3xl px-4 py-24">
       <Heading eyebrow="FAQ" title="Questions? Answers." />
       <div className="mt-12 space-y-3">
-        {faqs.map((f) => (
+        {allFaqs.slice(0, 5).map((f) => (
           <details
             key={f.q}
             className="group rounded-2xl border border-line bg-surface px-6 py-5 open:bg-surface-2"
@@ -233,27 +188,14 @@ export function Faq() {
           </details>
         ))}
       </div>
-    </section>
-  )
-}
-
-/* ---------- Final call to action ---------- */
-export function Cta() {
-  return (
-    <section className="mx-auto max-w-6xl px-4 pb-24">
-      <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br text-white from-brand-600 via-violet-600 to-fuchsia-600 px-6 py-16 text-center sm:px-16">
-        <div className="bg-grid pointer-events-none absolute inset-0 opacity-60" />
-        <h2 className="relative text-3xl font-bold tracking-tight sm:text-4xl">Write your first line of code today</h2>
-        <p className="relative mx-auto mt-4 max-w-xl text-brand-100">
-          Your first lesson takes 5 minutes. No sign-up, no installs.
-        </p>
-        <Link
-          to="/tracks/html/first-page"
-          className="relative mt-8 inline-block rounded-xl bg-white px-7 py-3.5 font-semibold text-brand-700 shadow-xl transition hover:-translate-y-0.5"
-        >
-          Start lesson 1 →
+      <div className="mt-12 text-center">
+        <Link to="/faq" className="font-semibold text-brand-600 hover:underline dark:text-brand-400">
+          See all questions →
         </Link>
       </div>
     </section>
   )
 }
+
+/* ---------- Final call to action ---------- */
+export const Cta = CtaBanner
