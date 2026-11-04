@@ -1,22 +1,35 @@
 import { Route, Routes } from 'react-router-dom'
+import ProtectedRoute from './auth/ProtectedRoute'
 import Layout from './components/Layout'
+import AuthPage from './pages/AuthPage'
 import Home from './pages/Home'
-import Tracks from './pages/Tracks'
-import TrackPage from './pages/TrackPage'
 import LessonPage from './pages/LessonPage'
 import NotFound from './pages/NotFound'
+import TrackPage from './pages/TrackPage'
+import Tracks from './pages/Tracks'
 
 export default function App() {
   return (
     <Routes>
       <Route element={<Layout />}>
+        {/* Public pages */}
         <Route index element={<Home />} />
         <Route path="tracks" element={<Tracks />} />
-        <Route path="tracks/:trackId" element={<TrackPage />} />
+        <Route path="login" element={<AuthPage mode="login" />} />
+        <Route path="signup" element={<AuthPage mode="signup" />} />
+
+        {/* Signed-in users only */}
+        <Route element={<ProtectedRoute />}>
+          <Route path="tracks/:trackId" element={<TrackPage />} />
+        </Route>
+
         <Route path="*" element={<NotFound />} />
       </Route>
-      {/* Lessons use the full screen for the editor */}
-      <Route path="tracks/:trackId/:lessonId" element={<LessonPage />} />
+
+      {/* Lessons use the full screen for the editor, and need an account */}
+      <Route element={<ProtectedRoute />}>
+        <Route path="tracks/:trackId/:lessonId" element={<LessonPage />} />
+      </Route>
     </Routes>
   )
 }

@@ -1,17 +1,53 @@
 import Editor from '@monaco-editor/react'
 import { useEffect, useMemo, useState } from 'react'
-import { Link, useParams } from 'react-router-dom'
+import { Link, Navigate, useParams } from 'react-router-dom'
 import { Logo } from '../components/Layout'
+import ThemeToggle from '../components/ThemeToggle'
 import { flatLessons, getTrack } from '../data/tracks'
-import type { ContentBlock, Lesson, Track } from '../data/types'
-import { isDone, markDone } from '../lib/progress'
+import type { Check, ContentBlock, Lesson, Track } from '../data/types'
+import { isLessonUnlocked } from '../lib/access'
+import { useProgress } from '../lib/progress'
+import { useTheme } from '../lib/theme'
 import NotFound from './NotFound'
+
+const pageStyle = 'body{font-family:system-ui,sans-serif;padding:16px;line-height:1.5}'
+const wrap = (code: string) => `<!doctype html><html><head><style>${pageStyle}</style></head><body>${code}</body></html>`
+
+/**
+ * Renders the learner's code in a hidden frame so checks can read real
+ * computed styles. Scripts are not allowed to run in this frame.
+ */
+function runChecks(code: string, checks: Check[]): Promise<boolean[]> {
+  return new Promise((resolve) => {
+    const frame = document.createElement('iframe')
+    frame.setAttribute('sandbox', 'allow-same-origin')
+    frame.style.cssText = 'position:fixed;left:-9999px;width:800px;height:600px;border:0'
+    frame.onload = () => {
+      const doc = frame.contentDocument!
+      resolve(
+        checks.map((c) => {
+          try {
+            return c.test(doc, code)
+          } catch {
+            return false
+          }
+        }),
+      )
+      frame.remove()
+    }
+    frame.srcdoc = wrap(code)
+    document.body.appendChild(frame)
+  })
+}
 
 export default function LessonPage() {
   const { trackId, lessonId } = useParams()
+  const progress = useProgress()
   const track = getTrack(trackId)
   const lesson = track && flatLessons(track).find((l) => l.id === lessonId)
   if (!track || !lesson) return <NotFound />
+  // Locked lessons (or tracks) send the learner back to the track page
+  if (!isLessonUnlocked(track, lesson.id, progress)) return <Navigate to={`/tracks/${track.id}`} replace />
   // key resets the editor when moving to another lesson
   return <LessonView key={lesson.id} track={track} lesson={lesson} />
 }
@@ -19,24 +55,27 @@ export default function LessonPage() {
 function Block({ block }: { block: ContentBlock }) {
   if (block.type === 'code')
     return (
-      <pre className="overflow-x-auto rounded-xl border border-white/10 bg-black/40 p-4 font-mono text-sm text-emerald-300">
+      <pre className="overflow-x-auto rounded-xl border border-line bg-slate-900 p-4 font-mono text-sm text-emerald-300">
         {block.code}
       </pre>
     )
   if (block.type === 'tip')
     return (
-      <div className="rounded-xl border border-amber-400/20 bg-amber-400/10 p-4 text-sm text-amber-100">
+      <div className="rounded-xl border border-amber-400/20 bg-amber-400/10 p-4 text-sm text-amber-900 dark:text-amber-100">
         💡 {block.text}
       </div>
     )
-  return <p className="leading-relaxed text-slate-300">{block.text}</p>
+  return <p className="leading-relaxed text-fg-soft">{block.text}</p>
 }
 
 function LessonView({ track, lesson }: { track: Track; lesson: Lesson }) {
   const [code, setCode] = useState(lesson.starterCode)
   const [preview, setPreview] = useState(lesson.starterCode)
   const [results, setResults] = useState<boolean[] | null>(null)
-  const [done, setDone] = useState(() => isDone(track.id, lesson.id))
+  const [checking, setChecking] = useState(false)
+  const progress = useProgress()
+  const done = progress.isDone(track.id, lesson.id)
+  const { theme } = useTheme()
 
   const lessons = flatLessons(track)
   const index = lessons.findIndex((l) => l.id === lesson.id)
@@ -49,60 +88,51 @@ function LessonView({ track, lesson }: { track: Track; lesson: Lesson }) {
     return () => clearTimeout(t)
   }, [code])
 
-  const previewDoc = useMemo(
-    () =>
-      `<!doctype html><html><head><style>body{font-family:system-ui,sans-serif;padding:16px;line-height:1.5}</style></head><body>${preview}</body></html>`,
-    [preview],
-  )
+  const previewDoc = useMemo(() => wrap(preview), [preview])
 
-  function check() {
-    const doc = new DOMParser().parseFromString(code, 'text/html')
-    const r = lesson.checks.map((c) => {
-      try {
-        return c.test(doc, code)
-      } catch {
-        return false
-      }
-    })
+  async function check() {
+    setChecking(true)
+    const r = await runChecks(code, lesson.checks)
     setResults(r)
-    if (r.every(Boolean)) {
-      markDone(track.id, lesson.id)
-      setDone(true)
-    }
+    setChecking(false)
+    if (r.every(Boolean)) await progress.markDone(track.id, lesson.id)
   }
 
   const allPassed = results?.every(Boolean)
 
   return (
     <div className="flex h-full flex-col">
-      <header className="flex h-14 shrink-0 items-center justify-between border-b border-white/10 px-4">
+      <header className="flex h-14 shrink-0 items-center justify-between border-b border-line px-4">
         <div className="flex items-center gap-4">
           <Logo />
-          <span className="hidden text-slate-600 sm:inline">/</span>
-          <Link to={`/tracks/${track.id}`} className="hidden text-sm text-slate-400 hover:text-white sm:inline">
+          <span className="hidden text-faint sm:inline">/</span>
+          <Link to={`/tracks/${track.id}`} className="hidden text-sm text-muted hover:text-fg sm:inline">
             {track.name}
           </Link>
         </div>
-        <span className="text-sm text-slate-400">
-          Lesson {index + 1} of {lessons.length}
-        </span>
+        <div className="flex items-center gap-2">
+          <span className="text-sm text-muted">
+            Lesson {index + 1} of {lessons.length}
+          </span>
+          <ThemeToggle />
+        </div>
       </header>
 
       <div className="grid flex-1 overflow-hidden lg:grid-cols-[minmax(320px,2fr)_3fr]">
         {/* Lesson content */}
-        <aside className="flex flex-col overflow-y-auto border-white/10 lg:border-r">
+        <aside className="flex flex-col overflow-y-auto border-line lg:border-r">
           <div className="flex-1 space-y-5 p-6">
             <div className="text-xs font-semibold uppercase tracking-wider text-brand-500">{lesson.minutes} min read</div>
             <h1 className="text-2xl font-bold">
-              {lesson.title} {done && <span className="text-emerald-400">✓</span>}
+              {lesson.title} {done && <span className="text-emerald-600 dark:text-emerald-400">✓</span>}
             </h1>
             {lesson.content.map((b, i) => (
               <Block key={i} block={b} />
             ))}
 
             <div className="rounded-xl border border-brand-500/30 bg-brand-500/10 p-4">
-              <div className="text-sm font-semibold text-brand-100">🎯 Your task</div>
-              <p className="mt-1 text-sm text-slate-200">{lesson.task}</p>
+              <div className="text-sm font-semibold text-brand-700 dark:text-brand-100">🎯 Your task</div>
+              <p className="mt-1 text-sm text-fg-soft">{lesson.task}</p>
             </div>
 
             <ul className="space-y-2">
@@ -113,7 +143,7 @@ function LessonView({ track, lesson }: { track: Track; lesson: Lesson }) {
                     <span
                       className={`grid h-5 w-5 shrink-0 place-items-center rounded-full text-[10px] ${
                         r === undefined
-                          ? 'border border-white/20'
+                          ? 'border border-line-strong'
                           : r
                             ? 'bg-emerald-500 text-white'
                             : 'bg-rose-500 text-white'
@@ -121,22 +151,22 @@ function LessonView({ track, lesson }: { track: Track; lesson: Lesson }) {
                     >
                       {r === undefined ? '' : r ? '✓' : '✕'}
                     </span>
-                    <span className={r === false ? 'text-rose-200' : 'text-slate-300'}>{c.label}</span>
+                    <span className={r === false ? 'text-rose-700 dark:text-rose-200' : 'text-fg-soft'}>{c.label}</span>
                   </li>
                 )
               })}
             </ul>
 
             {allPassed && (
-              <div className="rounded-xl border border-emerald-400/30 bg-emerald-400/10 p-4 text-sm text-emerald-100">
+              <div className="rounded-xl border border-emerald-400/30 bg-emerald-400/10 p-4 text-sm text-emerald-800 dark:text-emerald-100">
                 🎉 All checks passed. Nice work!
               </div>
             )}
           </div>
 
-          <div className="sticky bottom-0 flex items-center justify-between gap-2 border-t border-white/10 bg-slate-950 p-4">
+          <div className="sticky bottom-0 flex items-center justify-between gap-2 border-t border-line bg-page p-4">
             {prev ? (
-              <Link to={`/tracks/${track.id}/${prev.id}`} className="text-sm text-slate-400 hover:text-white">
+              <Link to={`/tracks/${track.id}/${prev.id}`} className="text-sm text-muted hover:text-fg">
                 ← Previous
               </Link>
             ) : (
@@ -148,30 +178,31 @@ function LessonView({ track, lesson }: { track: Track; lesson: Lesson }) {
                   setCode(lesson.starterCode)
                   setResults(null)
                 }}
-                className="rounded-lg border border-white/15 px-4 py-2 text-sm hover:bg-white/5"
+                className="rounded-lg border border-line-strong px-4 py-2 text-sm hover:bg-surface"
               >
                 Reset
               </button>
               {allPassed && next ? (
                 <Link
                   to={`/tracks/${track.id}/${next.id}`}
-                  className="rounded-lg bg-emerald-600 px-4 py-2 text-sm font-medium hover:bg-emerald-500"
+                  className="rounded-lg bg-emerald-600 text-white px-4 py-2 text-sm font-medium hover:bg-emerald-500"
                 >
                   Next lesson →
                 </Link>
               ) : allPassed && !next ? (
                 <Link
                   to={`/tracks/${track.id}`}
-                  className="rounded-lg bg-emerald-600 px-4 py-2 text-sm font-medium hover:bg-emerald-500"
+                  className="rounded-lg bg-emerald-600 text-white px-4 py-2 text-sm font-medium hover:bg-emerald-500"
                 >
                   Finish track
                 </Link>
               ) : (
                 <button
                   onClick={check}
-                  className="rounded-lg bg-brand-600 px-4 py-2 text-sm font-medium hover:bg-brand-500"
+                  disabled={checking}
+                  className="rounded-lg bg-brand-600 text-white px-4 py-2 text-sm font-medium hover:bg-brand-500 disabled:opacity-60"
                 >
-                  Check my code
+                  {checking ? 'Checking…' : 'Check my code'}
                 </button>
               )}
             </div>
@@ -180,14 +211,14 @@ function LessonView({ track, lesson }: { track: Track; lesson: Lesson }) {
 
         {/* Editor + preview */}
         <section className="grid min-h-[600px] grid-rows-2 lg:min-h-0">
-          <div className="flex min-h-0 flex-col border-b border-white/10">
-            <div className="flex h-9 items-center border-b border-white/10 bg-black/20 px-4 font-mono text-xs text-slate-400">
+          <div className="flex min-h-0 flex-col border-b border-line">
+            <div className="flex h-9 items-center border-b border-line bg-surface px-4 font-mono text-xs text-muted">
               index.html
             </div>
             <div className="min-h-0 flex-1">
               <Editor
                 language="html"
-                theme="vs-dark"
+                theme={theme === 'dark' ? 'vs-dark' : 'light'}
                 value={code}
                 onChange={(v) => {
                   setCode(v ?? '')
@@ -205,7 +236,7 @@ function LessonView({ track, lesson }: { track: Track; lesson: Lesson }) {
             </div>
           </div>
           <div className="flex min-h-0 flex-col">
-            <div className="flex h-9 items-center border-b border-white/10 bg-black/20 px-4 text-xs text-slate-400">
+            <div className="flex h-9 items-center border-b border-line bg-surface px-4 text-xs text-muted">
               Live preview
             </div>
             {/* sandbox keeps learner code isolated from the site */}

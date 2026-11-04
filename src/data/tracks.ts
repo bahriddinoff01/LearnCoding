@@ -1,3 +1,4 @@
+import { cssSections } from './css'
 import { htmlSections } from './html'
 import type { Lesson, Track } from './types'
 
@@ -17,8 +18,9 @@ export const tracks: Track[] = [
     short: '{ }',
     color: 'from-sky-500 to-blue-600',
     description: 'Make pages beautiful: colors, Flexbox, Grid, responsive design and animations.',
-    status: 'soon',
-    sections: [],
+    status: 'available',
+    requires: 'html',
+    sections: cssSections,
   },
   {
     id: 'javascript',
@@ -27,15 +29,7 @@ export const tracks: Track[] = [
     color: 'from-yellow-400 to-amber-500',
     description: 'Make pages interactive: logic, functions, the DOM, events and fetching data.',
     status: 'soon',
-    sections: [],
-  },
-  {
-    id: 'python',
-    name: 'Python',
-    short: 'Py',
-    color: 'from-emerald-500 to-teal-600',
-    description: 'The friendliest first language: logic, data, files and small scripts.',
-    status: 'soon',
+    requires: 'css',
     sections: [],
   },
   {
@@ -44,6 +38,17 @@ export const tracks: Track[] = [
     short: '⚛',
     color: 'from-cyan-400 to-sky-600',
     description: 'Build modern apps with components, state, hooks and routing.',
+    status: 'soon',
+    requires: 'javascript',
+    sections: [],
+  },
+  // Python and SQL don't depend on the web tracks, so anyone can start them
+  {
+    id: 'python',
+    name: 'Python',
+    short: 'Py',
+    color: 'from-emerald-500 to-teal-600',
+    description: 'The friendliest first language: logic, data, files and small scripts.',
     status: 'soon',
     sections: [],
   },

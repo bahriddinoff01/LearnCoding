@@ -1,6 +1,6 @@
 export type Check = {
   label: string
-  // Gets the learner's code parsed as a page, plus the raw code
+  // Gets the learner's page rendered with its styles applied, plus the raw code
   test: (doc: Document, code: string) => boolean
 }
 
@@ -32,5 +32,7 @@ export type Track = {
   color: string // Tailwind gradient classes
   description: string
   status: 'available' | 'soon'
+  // The track to finish (or say you know) before starting this one
+  requires?: string
   sections: Section[]
 }
