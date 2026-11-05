@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import { useAuth } from '../auth/AuthProvider'
-import { countLessons, flatLessons, getTrack } from '../data/tracks'
+import { countLessons, getTrack, trackItems } from '../data/tracks'
 import type { Track } from '../data/types'
 import { isTrackComplete, isTrackUnlocked } from '../lib/access'
 import { useProgress } from '../lib/progress'
@@ -16,7 +16,8 @@ export default function TrackCard({ track }: { track: Track }) {
   const signedIn = !!user && progress.ready
   const locked = signedIn && !isTrackUnlocked(track, progress)
   const complete = signedIn && isTrackComplete(track, progress)
-  const doneCount = signedIn ? flatLessons(track).filter((l) => progress.isDone(track.id, l.id)).length : 0
+  const items = trackItems(track)
+  const doneCount = signedIn ? items.filter((i) => progress.isDone(track.id, i.id)).length : 0
   const total = countLessons(track)
   const requires = getTrack(track.requires)
 
@@ -37,7 +38,7 @@ export default function TrackCard({ track }: { track: Track }) {
   else
     badge = (
       <span className="rounded-full bg-emerald-500/15 px-3 py-1 text-xs text-emerald-700 dark:text-emerald-300">
-        {signedIn && doneCount > 0 ? `${doneCount}/${total} done` : `${total} lessons`}
+        {signedIn && doneCount > 0 ? `${Math.round((doneCount / items.length) * 100)}% done` : `${total} lessons`}
       </span>
     )
 

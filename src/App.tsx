@@ -8,6 +8,8 @@ import HowItWorksPage from './pages/HowItWorksPage'
 import Home from './pages/Home'
 import LessonPage from './pages/LessonPage'
 import NotFound from './pages/NotFound'
+import ProjectPage from './pages/ProjectPage'
+import QuizPage from './pages/QuizPage'
 import TrackPage from './pages/TrackPage'
 import Tracks from './pages/Tracks'
 
@@ -27,6 +29,7 @@ export default function App() {
         {/* Signed-in users only */}
         <Route element={<ProtectedRoute />}>
           <Route path="tracks/:trackId" element={<TrackPage />} />
+          <Route path="tracks/:trackId/:sectionId/quiz" element={<QuizPage />} />
         </Route>
 
         <Route path="*" element={<NotFound />} />
@@ -35,6 +38,8 @@ export default function App() {
       {/* Lessons use the full screen for the editor, and need an account */}
       <Route element={<ProtectedRoute />}>
         <Route path="tracks/:trackId/:lessonId" element={<LessonPage />} />
+        <Route path="project" element={<ProjectPage />} />
+        <Route path="project/:trackId/:sectionId" element={<ProjectPage />} />
       </Route>
     </Routes>
   )

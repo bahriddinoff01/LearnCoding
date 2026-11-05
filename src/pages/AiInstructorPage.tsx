@@ -5,11 +5,11 @@ import { htmlSections } from '../data/html'
 import type { InstructorContext } from '../lib/mockInstructor'
 
 // A sample lesson with one failing check, so the demo has something to help with
-const demoLesson = htmlSections[0].lessons[1]
+const demoLesson = htmlSections.flatMap((s) => s.lessons).find((l) => l.id === 'images')!
 const demoCode = `<h1>My favorite things</h1>
 <a href="https://developer.mozilla.org">Learn on MDN</a>
-<img src="https://picsum.photos/300/200">`
-const demoCtx: InstructorContext = { lesson: demoLesson, code: demoCode, results: [true, true, true, false] }
+<img src="https://picsum.photos/300/200" width="300" height="200">`
+const demoCtx: InstructorContext = { lesson: demoLesson, code: demoCode, results: [true, false, true] }
 
 const ladder = [
   {

@@ -1,6 +1,6 @@
 import { cssSections } from './css'
 import { htmlSections } from './html'
-import type { Lesson, Track } from './types'
+import type { Lesson, Track, TrackItem } from './types'
 
 export const tracks: Track[] = [
   {
@@ -8,7 +8,7 @@ export const tracks: Track[] = [
     name: 'HTML',
     short: '</>',
     color: 'from-orange-500 to-red-500',
-    description: 'The structure of every web page: tags, links, images, lists and forms.',
+    description: 'The structure of every web page. Build your own personal website from the first lesson.',
     status: 'available',
     sections: htmlSections,
   },
@@ -17,7 +17,7 @@ export const tracks: Track[] = [
     name: 'CSS',
     short: '{ }',
     color: 'from-sky-500 to-blue-600',
-    description: 'Make pages beautiful: colors, Flexbox, Grid, responsive design and animations.',
+    description: 'Make your website beautiful: colors, typography, Flexbox, Grid, responsive design and motion.',
     status: 'available',
     requires: 'html',
     sections: cssSections,
@@ -74,4 +74,25 @@ export function flatLessons(track: Track): Lesson[] {
 
 export function countLessons(track: Track) {
   return flatLessons(track).length
+}
+
+/** Every lesson, quiz and project step of a track, in learning order. */
+export function trackItems(track: Track): TrackItem[] {
+  return track.sections.flatMap((section) => [
+    ...section.lessons.map((lesson) => ({ kind: 'lesson' as const, id: lesson.id, section, lesson })),
+    { kind: 'quiz' as const, id: `quiz-${section.id}`, section },
+    { kind: 'project' as const, id: `project-${section.id}`, section },
+  ])
+}
+
+/** The page address for a track item. */
+export function itemPath(track: Track, item: TrackItem) {
+  if (item.kind === 'lesson') return `/tracks/${track.id}/${item.id}`
+  if (item.kind === 'quiz') return `/tracks/${track.id}/${item.section.id}/quiz`
+  return `/project/${track.id}/${item.section.id}`
+}
+
+/** Tracks whose project steps build the learner's website, in order. */
+export function projectTracks() {
+  return tracks.filter((t) => t.status === 'available')
 }

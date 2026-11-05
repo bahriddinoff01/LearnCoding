@@ -4,51 +4,23 @@ import { Link, Navigate, useParams } from 'react-router-dom'
 import { Logo } from '../components/Layout'
 import InstructorChat from '../components/InstructorChat'
 import ThemeToggle from '../components/ThemeToggle'
-import { flatLessons, getTrack } from '../data/tracks'
-import type { Check, ContentBlock, Lesson, Track } from '../data/types'
-import { isLessonUnlocked } from '../lib/access'
+import { getTrack, itemPath, trackItems } from '../data/tracks'
+import type { ContentBlock, Lesson, Track } from '../data/types'
+import { isItemUnlocked } from '../lib/access'
+import { lessonDoc, runChecks } from '../lib/render'
 import { useProgress } from '../lib/progress'
 import { useTheme } from '../lib/theme'
 import NotFound from './NotFound'
-
-const pageStyle = 'body{font-family:system-ui,sans-serif;padding:16px;line-height:1.5}'
-const wrap = (code: string) => `<!doctype html><html><head><style>${pageStyle}</style></head><body>${code}</body></html>`
-
-/**
- * Renders the learner's code in a hidden frame so checks can read real
- * computed styles. Scripts are not allowed to run in this frame.
- */
-function runChecks(code: string, checks: Check[]): Promise<boolean[]> {
-  return new Promise((resolve) => {
-    const frame = document.createElement('iframe')
-    frame.setAttribute('sandbox', 'allow-same-origin')
-    frame.style.cssText = 'position:fixed;left:-9999px;width:800px;height:600px;border:0'
-    frame.onload = () => {
-      const doc = frame.contentDocument!
-      resolve(
-        checks.map((c) => {
-          try {
-            return c.test(doc, code)
-          } catch {
-            return false
-          }
-        }),
-      )
-      frame.remove()
-    }
-    frame.srcdoc = wrap(code)
-    document.body.appendChild(frame)
-  })
-}
 
 export default function LessonPage() {
   const { trackId, lessonId } = useParams()
   const progress = useProgress()
   const track = getTrack(trackId)
-  const lesson = track && flatLessons(track).find((l) => l.id === lessonId)
+  const item = track && trackItems(track).find((i) => i.kind === 'lesson' && i.id === lessonId)
+  const lesson = item?.kind === 'lesson' ? item.lesson : undefined
   if (!track || !lesson) return <NotFound />
   // Locked lessons (or tracks) send the learner back to the track page
-  if (!isLessonUnlocked(track, lesson.id, progress)) return <Navigate to={`/tracks/${track.id}`} replace />
+  if (!isItemUnlocked(track, lesson.id, progress)) return <Navigate to={`/tracks/${track.id}`} replace />
   // key resets the editor when moving to another lesson
   return <LessonView key={lesson.id} track={track} lesson={lesson} />
 }
@@ -79,10 +51,14 @@ function LessonView({ track, lesson }: { track: Track; lesson: Lesson }) {
   const done = progress.isDone(track.id, lesson.id)
   const { theme } = useTheme()
 
-  const lessons = flatLessons(track)
-  const index = lessons.findIndex((l) => l.id === lesson.id)
-  const prev = lessons[index - 1]
-  const next = lessons[index + 1]
+  const items = trackItems(track)
+  const at = items.findIndex((i) => i.id === lesson.id)
+  const prev = items[at - 1]
+  const next = items[at + 1]
+  const section = items[at].section
+  const sectionLessons = section.lessons
+  const index = sectionLessons.indexOf(lesson)
+  const nextLabel = !next ? 'Finish track' : next.kind === 'lesson' ? 'Next lesson →' : 'Section quiz →'
 
   // Update the preview shortly after the learner stops typing
   useEffect(() => {
@@ -90,11 +66,11 @@ function LessonView({ track, lesson }: { track: Track; lesson: Lesson }) {
     return () => clearTimeout(t)
   }, [code])
 
-  const previewDoc = useMemo(() => wrap(preview), [preview])
+  const previewDoc = useMemo(() => lessonDoc(preview), [preview])
 
   async function check() {
     setChecking(true)
-    const r = await runChecks(code, lesson.checks)
+    const r = await runChecks(lessonDoc(code), code, lesson.checks)
     setResults(r)
     setChecking(false)
     if (r.every(Boolean)) await progress.markDone(track.id, lesson.id)
@@ -114,7 +90,7 @@ function LessonView({ track, lesson }: { track: Track; lesson: Lesson }) {
         </div>
         <div className="flex items-center gap-2">
           <span className="hidden text-sm text-muted sm:inline">
-            Lesson {index + 1} of {lessons.length}
+            {section.title} · Lesson {index + 1} of {sectionLessons.length}
           </span>
           <button
             onClick={() => setAiOpen((o) => !o)}
@@ -152,7 +128,14 @@ function LessonView({ track, lesson }: { track: Track; lesson: Lesson }) {
         {/* Lesson content */}
         <aside className="flex flex-col overflow-y-auto border-line lg:border-r">
           <div className="flex-1 space-y-5 p-6">
-            <div className="text-xs font-semibold uppercase tracking-wider text-brand-500">{lesson.minutes} min read</div>
+            <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-brand-500">
+              {lesson.minutes} min
+              {lesson.kind === 'fix' && (
+                <span className="rounded-full bg-rose-500/15 px-2 py-0.5 normal-case tracking-normal text-rose-700 dark:text-rose-300">
+                  🐞 Fix the bug
+                </span>
+              )}
+            </div>
             <h1 className="text-2xl font-bold">
               {lesson.title} {done && <span className="text-emerald-600 dark:text-emerald-400">✓</span>}
             </h1>
@@ -209,7 +192,7 @@ function LessonView({ track, lesson }: { track: Track; lesson: Lesson }) {
 
           <div className="sticky bottom-0 flex items-center justify-between gap-2 border-t border-line bg-page p-4">
             {prev ? (
-              <Link to={`/tracks/${track.id}/${prev.id}`} className="text-sm text-muted hover:text-fg">
+              <Link to={itemPath(track, prev)} className="text-sm text-muted hover:text-fg">
                 ← Previous
               </Link>
             ) : (
@@ -225,21 +208,15 @@ function LessonView({ track, lesson }: { track: Track; lesson: Lesson }) {
               >
                 Reset
               </button>
-              {allPassed && next ? (
+              {(allPassed || done) && (
                 <Link
-                  to={`/tracks/${track.id}/${next.id}`}
-                  className="rounded-lg bg-emerald-600 text-white px-4 py-2 text-sm font-medium hover:bg-emerald-500"
+                  to={next ? itemPath(track, next) : `/tracks/${track.id}`}
+                  className="rounded-lg bg-emerald-600 px-4 py-2 text-sm font-medium text-white hover:bg-emerald-500"
                 >
-                  Next lesson →
+                  {nextLabel}
                 </Link>
-              ) : allPassed && !next ? (
-                <Link
-                  to={`/tracks/${track.id}`}
-                  className="rounded-lg bg-emerald-600 text-white px-4 py-2 text-sm font-medium hover:bg-emerald-500"
-                >
-                  Finish track
-                </Link>
-              ) : (
+              )}
+              {allPassed ? null : (
                 <button
                   onClick={check}
                   disabled={checking}

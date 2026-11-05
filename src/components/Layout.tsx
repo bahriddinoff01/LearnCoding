@@ -61,6 +61,11 @@ function Navbar() {
               {item.label}
             </NavLink>
           ))}
+          {user && (
+            <NavLink to="/project" className={linkClass}>
+              🌐 My website
+            </NavLink>
+          )}
         </div>
 
         <div className="hidden items-center gap-2 md:flex">
@@ -108,6 +113,11 @@ function Navbar() {
       {open && (
         <div className="border-t border-line px-4 pb-4 md:hidden">
           <div className="flex flex-col py-2">
+            {user && (
+              <Link to="/project" onClick={close} className="rounded-lg px-3 py-3 font-semibold text-fg hover:bg-surface">
+                🌐 My website
+              </Link>
+            )}
             {navItems.map((item) => (
               <Link
                 key={item.label}
