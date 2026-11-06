@@ -2,8 +2,8 @@ import { Link } from 'react-router-dom'
 import CodeDemo from './CodeDemo'
 
 const stats = [
-  { value: '6', label: 'Learning tracks' },
-  { value: '5', label: 'Steps per section' },
+  { value: '62', label: 'Lessons' },
+  { value: '15', label: 'Website steps' },
   { value: '24/7', label: 'AI hints' },
   { value: '0', label: 'Setup needed' },
 ]

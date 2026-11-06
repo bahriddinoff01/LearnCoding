@@ -41,6 +41,10 @@ export const faqGroups: FaqGroup[] = [
         a: 'When you click "Check my code", we render your page and run automatic checks, for example "does the page have an <h1>?" or "is the font size 20px?". You see which checks passed right away.',
       },
       {
+        q: 'What is "My website"?',
+        a: 'Every section ends with a step that adds to your own personal website. In HTML you build its structure, then the CSS course styles that same site. Open it anytime from "My website" in the menu. It saves automatically.',
+      },
+      {
         q: 'How long does a track take?',
         a: 'Most lessons take 5–10 minutes. With 20–30 minutes a day, you can finish a track in a few weeks.',
       },
@@ -73,7 +77,7 @@ export const faqGroups: FaqGroup[] = [
       { q: 'Is it free?', a: 'Yes. Lessons, exercises and projects are free while we build the platform.' },
       {
         q: 'What will I have at the end?',
-        a: 'A project for every section you finish, saved to your profile. Together they make a portfolio you can show employers.',
+        a: 'Your own personal website, built step by step across the HTML and CSS courses. You can download its files anytime and publish it, so it becomes the first project in your portfolio.',
       },
       {
         q: 'I did not get the confirmation email.',

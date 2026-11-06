@@ -1,24 +1,20 @@
-import { useEffect } from 'react'
-import { useLocation } from 'react-router-dom'
+import { lazy, Suspense } from 'react'
 import Hero from '../components/home/Hero'
-import { AiInstructor, Cta, Faq, HowItWorks, TechStrip, TracksSection } from '../components/home/Sections'
+import { AiInstructor, Cta, Faq, HowItWorks, TechStrip } from '../components/home/Sections'
+
+// The track cards need all the course content, so they load just after the page appears
+const TracksSection = lazy(() => import('../components/home/TracksSection'))
 
 export default function Home() {
-  const { hash } = useLocation()
-
-  // Scroll to a section when the navbar links to /#how, /#ai or /#faq
-  useEffect(() => {
-    if (hash) document.querySelector(hash)?.scrollIntoView()
-    else window.scrollTo(0, 0)
-  }, [hash])
-
   return (
     <>
       <Hero />
       <TechStrip />
       <HowItWorks />
       <AiInstructor />
-      <TracksSection />
+      <Suspense fallback={<div className="h-[900px]" />}>
+        <TracksSection />
+      </Suspense>
       <Faq />
       <Cta />
     </>

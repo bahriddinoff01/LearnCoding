@@ -1,17 +1,23 @@
+import { lazy, Suspense, type ReactNode } from 'react'
 import { Route, Routes } from 'react-router-dom'
-import ProtectedRoute from './auth/ProtectedRoute'
+import ProtectedRoute, { Spinner } from './auth/ProtectedRoute'
 import Layout from './components/Layout'
-import AiInstructorPage from './pages/AiInstructorPage'
-import AuthPage from './pages/AuthPage'
-import FaqPage from './pages/FaqPage'
-import HowItWorksPage from './pages/HowItWorksPage'
 import Home from './pages/Home'
-import LessonPage from './pages/LessonPage'
 import NotFound from './pages/NotFound'
-import ProjectPage from './pages/ProjectPage'
-import QuizPage from './pages/QuizPage'
-import TrackPage from './pages/TrackPage'
-import Tracks from './pages/Tracks'
+
+// Pages load only when someone opens them, so the home page starts faster
+const AiInstructorPage = lazy(() => import('./pages/AiInstructorPage'))
+const AuthPage = lazy(() => import('./pages/AuthPage'))
+const FaqPage = lazy(() => import('./pages/FaqPage'))
+const HowItWorksPage = lazy(() => import('./pages/HowItWorksPage'))
+const LessonPage = lazy(() => import('./pages/LessonPage'))
+const ProjectPage = lazy(() => import('./pages/ProjectPage'))
+const QuizPage = lazy(() => import('./pages/QuizPage'))
+const TrackPage = lazy(() => import('./pages/TrackPage'))
+const Tracks = lazy(() => import('./pages/Tracks'))
+
+/** Shows a spinner while a page's code is loading. */
+const page = (el: ReactNode) => <Suspense fallback={<Spinner />}>{el}</Suspense>
 
 export default function App() {
   return (
@@ -19,17 +25,17 @@ export default function App() {
       <Route element={<Layout />}>
         {/* Public pages */}
         <Route index element={<Home />} />
-        <Route path="tracks" element={<Tracks />} />
-        <Route path="how-it-works" element={<HowItWorksPage />} />
-        <Route path="ai-instructor" element={<AiInstructorPage />} />
-        <Route path="faq" element={<FaqPage />} />
-        <Route path="login" element={<AuthPage mode="login" />} />
-        <Route path="signup" element={<AuthPage mode="signup" />} />
+        <Route path="tracks" element={page(<Tracks />)} />
+        <Route path="how-it-works" element={page(<HowItWorksPage />)} />
+        <Route path="ai-instructor" element={page(<AiInstructorPage />)} />
+        <Route path="faq" element={page(<FaqPage />)} />
+        <Route path="login" element={page(<AuthPage mode="login" />)} />
+        <Route path="signup" element={page(<AuthPage mode="signup" />)} />
 
         {/* Signed-in users only */}
         <Route element={<ProtectedRoute />}>
-          <Route path="tracks/:trackId" element={<TrackPage />} />
-          <Route path="tracks/:trackId/:sectionId/quiz" element={<QuizPage />} />
+          <Route path="tracks/:trackId" element={page(<TrackPage />)} />
+          <Route path="tracks/:trackId/:sectionId/quiz" element={page(<QuizPage />)} />
         </Route>
 
         <Route path="*" element={<NotFound />} />
@@ -37,9 +43,9 @@ export default function App() {
 
       {/* Lessons use the full screen for the editor, and need an account */}
       <Route element={<ProtectedRoute />}>
-        <Route path="tracks/:trackId/:lessonId" element={<LessonPage />} />
-        <Route path="project" element={<ProjectPage />} />
-        <Route path="project/:trackId/:sectionId" element={<ProjectPage />} />
+        <Route path="tracks/:trackId/:lessonId" element={page(<LessonPage />)} />
+        <Route path="project" element={page(<ProjectPage />)} />
+        <Route path="project/:trackId/:sectionId" element={page(<ProjectPage />)} />
       </Route>
     </Routes>
   )

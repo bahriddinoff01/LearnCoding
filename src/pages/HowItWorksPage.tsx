@@ -34,29 +34,28 @@ function LessonMock() {
   )
 }
 
-const exerciseTypes = ['Write the code', 'Fix the bug', 'Fill in the blank', 'Predict the output', 'Order the lines']
+const taskKinds = ['✏️ Write the code', '🐞 Fix the bug']
 
 function PracticeMock() {
   return (
-    <Window title="Exercise · Fix the bug">
+    <Window title="Lesson task · Fix the bug">
       <div className="flex flex-wrap gap-2">
-        {exerciseTypes.map((t, i) => (
-          <span
-            key={t}
-            className={`rounded-full px-3 py-1 text-xs ${
-              i === 1 ? 'bg-brand-600 text-white' : 'bg-surface-2 text-muted'
-            }`}
-          >
+        {taskKinds.map((t, i) => (
+          <span key={t} className={`rounded-full px-3 py-1 text-xs ${i === 1 ? 'bg-brand-600 text-white' : 'bg-surface-2 text-muted'}`}>
             {t}
           </span>
         ))}
       </div>
-      <p className="mt-4 text-sm text-muted">This list shows nothing. Find the mistake:</p>
+      <p className="mt-4 text-sm text-muted">The second item never closes. Find the mistake:</p>
       <pre className="mt-2 rounded-lg bg-slate-900 p-3 font-mono text-xs leading-6 text-slate-200">
         {'<ul>\n  <li>HTML</li>\n  '}
         <span className="rounded bg-rose-500/30 px-1 text-rose-200">{'<li>CSS<li>'}</span>
         {'\n</ul>'}
       </pre>
+      <div className="mt-4 flex items-center gap-2 text-xs text-emerald-600 dark:text-emerald-300">
+        <span className="grid h-4 w-4 place-items-center rounded-full bg-emerald-500 text-[9px] text-white">✓</span>
+        Checked instantly when you click "Check my code"
+      </div>
     </Window>
   )
 }
@@ -64,7 +63,7 @@ function PracticeMock() {
 function QuizMock() {
   const options = ['<link>', '<a>', '<href>', '<url>']
   return (
-    <Window title="Section quiz · Question 3 of 10">
+    <Window title="Section quiz · Question 3 of 5">
       <div className="font-semibold">Which tag creates a link to another page?</div>
       <div className="mt-4 space-y-2">
         {options.map((o) => {
@@ -89,56 +88,33 @@ function QuizMock() {
   )
 }
 
-function ChallengeMock() {
+function WebsiteMock() {
   const checks = [
-    { label: 'Card has a title and image', ok: true },
-    { label: 'Image has alt text', ok: true },
-    { label: 'Button links to a profile', ok: true },
-    { label: 'Card uses semantic tags', ok: false },
+    { label: 'A <form>', ok: true },
+    { label: 'A required email field', ok: true },
+    { label: 'A <textarea> for the message', ok: true },
+    { label: 'Every field has a label', ok: false },
   ]
   return (
-    <Window title="Section challenge · Profile card">
+    <Window title="🌐 My website · Step 6 of 15">
       <div className="flex items-center justify-between">
-        <div className="font-semibold">Build a profile card</div>
-        <span className="rounded-full bg-amber-400/15 px-3 py-1 text-xs text-amber-700 dark:text-amber-300">3 / 4 passed</span>
+        <div className="font-semibold">Add a contact form</div>
+        <span className="rounded-full bg-amber-400/15 px-3 py-1 text-xs text-amber-700 dark:text-amber-300">3 / 4</span>
       </div>
       <ul className="mt-4 space-y-2.5">
         {checks.map((c) => (
           <li key={c.label} className="flex items-center gap-3 text-sm">
-            <span
-              className={`grid h-5 w-5 place-items-center rounded-full text-[10px] text-white ${
-                c.ok ? 'bg-emerald-500' : 'bg-rose-500'
-              }`}
-            >
+            <span className={`grid h-5 w-5 place-items-center rounded-full text-[10px] text-white ${c.ok ? 'bg-emerald-500' : 'bg-rose-500'}`}>
               {c.ok ? '✓' : '✕'}
             </span>
             <span className={c.ok ? 'text-fg-soft' : 'text-rose-600 dark:text-rose-300'}>{c.label}</span>
           </li>
         ))}
       </ul>
-      <div className="mt-5 h-2 overflow-hidden rounded-full bg-surface-2">
-        <div className="h-full w-3/4 bg-gradient-to-r from-brand-500 to-fuchsia-500" />
-      </div>
-    </Window>
-  )
-}
-
-function BuildMock() {
-  return (
-    <Window title="Final project · Personal homepage">
-      <div className="font-semibold">🛠️ Build your personal homepage</div>
-      <p className="mt-2 text-sm text-muted">Use everything from HTML and CSS. No starter code, just you and a brief.</p>
-      <div className="mt-4 grid grid-cols-2 gap-2 text-xs">
-        {['Header with your name', 'About section', 'Project list', 'Contact form'].map((f) => (
-          <span key={f} className="rounded-lg bg-surface-2 px-3 py-2 text-fg-soft">
-            ☐ {f}
-          </span>
-        ))}
-      </div>
       <div className="mt-4 flex gap-3 rounded-xl border border-fuchsia-500/30 bg-fuchsia-500/10 p-3">
         <AiAvatar size="sm" />
         <p className="text-xs leading-relaxed text-fg-soft">
-          Your form is missing labels. Which attribute connects a &lt;label&gt; to its input? 🤔
+          Almost there! Which attribute connects a &lt;label&gt; to its input? 🤔
         </p>
       </div>
     </Window>
@@ -157,9 +133,9 @@ const journey = [
   {
     step: 'Practice',
     icon: '✏️',
-    title: 'Exercises after every lesson',
-    text: 'Small tasks check that the idea stuck. They come in different shapes so practice never gets boring.',
-    points: ['Instant automatic checks', 'Five kinds of exercises', 'Unlocks the next lesson'],
+    title: 'A task at the end of every lesson',
+    text: 'Each lesson ends with a small task that checks the idea stuck. Sometimes you write new code, sometimes you hunt down a bug in broken code.',
+    points: ['Instant automatic checks', 'Write-the-code and fix-the-bug tasks', 'Unlocks the next lesson'],
     visual: <PracticeMock />,
   },
   {
@@ -167,24 +143,16 @@ const journey = [
     icon: '❓',
     title: 'Quizzes that explain themselves',
     text: 'At the end of each section, a short quiz checks your understanding. Every answer, right or wrong, comes with an explanation.',
-    points: ['Retry with shuffled questions', 'Mistakes come back later for review', '70% to pass'],
+    points: ['An explanation for every answer', 'Questions shuffle on every retry', '70% to pass'],
     visual: <QuizMock />,
   },
   {
-    step: 'Challenge',
-    icon: '⚔️',
-    title: 'A challenge that combines it all',
-    text: 'A bigger task mixes everything from the section. Hidden tests show how close you are, one check at a time.',
-    points: ['Real-world style tasks', 'Score for correctness', 'A few AI hints allowed'],
-    visual: <ChallengeMock />,
-  },
-  {
     step: 'Build',
-    icon: '🛠️',
-    title: 'Your own project, with a mentor',
-    text: 'Finish each section by building something from scratch. The AI instructor guides you with hints, but never writes the code for you.',
-    points: ['A brief, not a tutorial', 'AI hints in four levels', 'Saved to your portfolio'],
-    visual: <BuildMock />,
+    icon: '🌐',
+    title: 'Grow your own website',
+    text: 'Every section ends with a step that adds to one personal website. In HTML you build its structure; in CSS you style that same site. By the end, it is a real site that is all yours.',
+    points: ['One website across HTML and CSS', 'Checks show exactly what is missing', 'AI hints, never the answer'],
+    visual: <WebsiteMock />,
   },
 ]
 
@@ -273,7 +241,7 @@ export default function HowItWorksPage() {
             From your first tag to <GradientText>your first app</GradientText>
           </>
         }
-        text="Every section follows the same five steps: learn, practice, quiz, challenge and build. You write code from the very first minute."
+        text="Every section follows the same four steps: learn, practice, take a quiz, then add what you learned to your own website. You write code from the very first minute."
       >
         <div className="flex flex-wrap justify-center gap-2">
           {journey.map((j, i) => (

@@ -1,7 +1,5 @@
 import { Link } from 'react-router-dom'
-import { tracks } from '../../data/tracks'
 import { allFaqs } from '../../data/faq'
-import TrackCard from '../TrackCard'
 import { Bubble, CtaBanner, Heading } from '../ui'
 
 /* ---------- Technologies strip ---------- */
@@ -29,10 +27,9 @@ export function TechStrip() {
 /* ---------- How it works ---------- */
 const steps = [
   { icon: '📖', title: 'Learn', text: 'Short lessons with live examples you can edit and run right away.' },
-  { icon: '✏️', title: 'Practice', text: 'Exercises after every lesson: write code, fix bugs, predict output.' },
+  { icon: '✏️', title: 'Practice', text: 'Every lesson ends with a task: write code or fix a bug, checked instantly.' },
   { icon: '❓', title: 'Quiz', text: 'Check what you understood, with an explanation for every answer.' },
-  { icon: '⚔️', title: 'Challenge', text: 'A harder task that combines everything from the section.' },
-  { icon: '🛠️', title: 'Build', text: 'Your own project from scratch, with the AI instructor by your side.' },
+  { icon: '🌐', title: 'Build', text: 'Add a new part to your own website. It grows with every section you finish.' },
 ]
 
 export function HowItWorks() {
@@ -40,10 +37,10 @@ export function HowItWorks() {
     <section id="how" className="mx-auto max-w-6xl px-4 py-24">
       <Heading
         eyebrow="How it works"
-        title="Every section, five steps"
-        text="You don't just watch. You write code from the first minute and finish each section with something you built yourself."
+        title="Every section, four steps"
+        text="You don't just watch. You write code from the first minute, and every section adds something real to your own personal website."
       />
-      <ol className="relative mt-16 grid gap-6 md:grid-cols-5">
+      <ol className="relative mt-16 grid gap-6 md:grid-cols-4">
         <div className="absolute left-[10%] right-[10%] top-8 hidden h-px bg-gradient-to-r from-brand-500/0 via-brand-500/50 to-brand-500/0 md:block" />
         {steps.map((s, i) => (
           <li key={s.title} className="relative text-center">
@@ -139,29 +136,6 @@ export function AiInstructor() {
             ))}
           </div>
         </div>
-      </div>
-    </section>
-  )
-}
-
-/* ---------- Tracks ---------- */
-export function TracksSection() {
-  return (
-    <section className="mx-auto max-w-6xl px-4 py-24">
-      <div className="flex flex-col items-start justify-between gap-4 sm:flex-row sm:items-end">
-        <div>
-          <div className="text-sm font-semibold uppercase tracking-wider text-brand-600 dark:text-brand-400">Tracks</div>
-          <h2 className="mt-3 text-3xl font-bold tracking-tight sm:text-4xl">Pick where to start</h2>
-          <p className="mt-3 text-muted">From your first tag to full React apps.</p>
-        </div>
-        <Link to="/tracks" className="text-sm font-semibold text-brand-600 dark:text-brand-300 hover:text-brand-700 dark:hover:text-brand-100">
-          See all tracks →
-        </Link>
-      </div>
-      <div className="mt-10 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-        {tracks.map((t) => (
-          <TrackCard key={t.id} track={t} />
-        ))}
       </div>
     </section>
   )

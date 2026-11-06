@@ -221,11 +221,24 @@ function Footer() {
   )
 }
 
-// Start each new page at the top (links to #sections scroll themselves)
+/**
+ * Start each new page at the top. For links to a #section, scroll to it once
+ * it exists: pages load on demand, so it may appear a moment later.
+ */
 function ScrollToTop() {
   const { pathname, hash } = useLocation()
   useEffect(() => {
-    if (!hash) window.scrollTo(0, 0)
+    if (!hash) {
+      window.scrollTo(0, 0)
+      return
+    }
+    let tries = 0
+    const timer = window.setInterval(() => {
+      const target = document.getElementById(decodeURIComponent(hash.slice(1)))
+      if (target) target.scrollIntoView()
+      if (target || ++tries > 30) window.clearInterval(timer)
+    }, 100)
+    return () => window.clearInterval(timer)
   }, [pathname, hash])
   return null
 }
