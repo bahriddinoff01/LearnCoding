@@ -4,7 +4,8 @@
 // Secrets (Supabase dashboard -> Edge Functions -> Secrets). Set ONE provider key:
 //   GEMINI_API_KEY     Google Gemini (free tier available at aistudio.google.com). Used first if set.
 //   ANTHROPIC_API_KEY  Claude (console.anthropic.com). Used when no Gemini key is set.
-//   TUTOR_MODEL        optional model override. Defaults: gemini-flash-latest / claude-opus-5-5
+//   TUTOR_MODEL        optional model override. Defaults: gemini-flash-lite-latest (backup:
+//                      gemini-flash-latest) / claude-opus-5-5
 // SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY are provided by Supabase automatically.
 
 import Anthropic from 'npm:@anthropic-ai/sdk@1.6.0'
@@ -109,7 +110,10 @@ const EMPTY = 'Sorry, I lost my train of thought. Could you ask again?'
 
 /** Google Gemini. */
 async function askGemini(apiKey: string, model: string, { history, question }: Ask): Promise<AiResult> {
-  const ai = new GoogleGenAI({ apiKey })
+  // One attempt with a 12 second limit. The SDK otherwise retries up to 5 times with
+  // waits of up to a minute, which leaves learners staring at a spinner.
+  const ai = new GoogleGenAI({ apiKey, httpOptions: { timeout: 12_000, retryOptions: { attempts: 1 } } })
+  const started = Date.now()
   try {
     const response = await ai.models.generateContent({
       model,
@@ -119,20 +123,34 @@ async function askGemini(apiKey: string, model: string, { history, question }: A
       ],
       config: { systemInstruction: SYSTEM, maxOutputTokens: 2048 },
     })
+    console.log(`Gemini (${model}) replied in ${Date.now() - started} ms`)
     // Gemini returns no text when its safety filters block a reply
     return { ok: true, reply: response.text?.trim() || (response.promptFeedback?.blockReason ? REFUSED : EMPTY) }
   } catch (error) {
+    console.error(`Gemini (${model}) failed after ${Date.now() - started} ms`)
     if (error instanceof GeminiApiError) {
       console.error('Gemini API error', error.status, error.message)
-      if (error.status === 429) return { ok: false, error: 'busy' } // free-tier quota reached
+      // 429: free-tier quota reached. 500/503: Google is overloaded right now.
+      if ([429, 500, 503].includes(error.status)) return { ok: false, error: 'busy' }
       if ([400, 401, 403].includes(error.status) && /api key|permission|unauthenticated/i.test(error.message)) {
         return { ok: false, error: 'not_configured' }
       }
       return { ok: false, error: 'ai_error' }
     }
+    // Usually a timeout: treat it like Google being busy
     console.error('Gemini error', error)
-    return { ok: false, error: 'ai_error' }
+    return { ok: false, error: 'busy' }
   }
+}
+
+/** Tries Gemini models in order, moving on when one is busy (free-tier requests get lower priority). */
+async function askGeminiWithBackup(apiKey: string, models: string[], ask: Ask): Promise<AiResult> {
+  let result: AiResult = { ok: false, error: 'busy' }
+  for (const model of models) {
+    result = await askGemini(apiKey, model, ask)
+    if (result.ok || result.error !== 'busy') return result
+  }
+  return result
 }
 
 /** Claude (Anthropic). */
@@ -225,7 +243,7 @@ Deno.serve(async (req) => {
   const ask = { history, question: contextMessage(body) }
   const override = Deno.env.get('TUTOR_MODEL')
   const result = geminiKey
-    ? await askGemini(geminiKey, override || 'gemini-flash-latest', ask)
+    ? await askGeminiWithBackup(geminiKey, override ? [override] : ['gemini-flash-lite-latest', 'gemini-flash-latest'], ask)
     : await askClaude(anthropicKey!, override || 'claude-opus-5-5', ask)
 
   if (!result.ok) {
