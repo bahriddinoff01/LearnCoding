@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import { useAuth } from '../auth/AuthProvider'
+import { OPEN_ACCESS } from '../config'
 import TrackCard from '../components/TrackCard'
 import { PageHeader } from '../components/ui'
 import { countLessons, flatLessons, tracks } from '../data/tracks'
@@ -90,7 +91,7 @@ export default function Tracks() {
       </PageHeader>
 
       <div className="mx-auto max-w-6xl px-4 py-16">
-        {user && <SignedInSummary />}
+        {(user || OPEN_ACCESS) && <SignedInSummary />}
 
         <div className="flex gap-2 overflow-x-auto pb-2">
           {filters.map((f) => (

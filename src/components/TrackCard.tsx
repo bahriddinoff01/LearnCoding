@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import { useAuth } from '../auth/AuthProvider'
+import { OPEN_ACCESS } from '../config'
 import { countLessons, getTrack, trackItems } from '../data/tracks'
 import type { Track } from '../data/types'
 import { isTrackComplete, isTrackUnlocked } from '../lib/access'
@@ -13,7 +14,7 @@ export default function TrackCard({ track }: { track: Track }) {
   const [askSkip, setAskSkip] = useState(false)
 
   const soon = track.status === 'soon'
-  const signedIn = !!user && progress.ready
+  const signedIn = (!!user || OPEN_ACCESS) && progress.ready
   const locked = signedIn && !isTrackUnlocked(track, progress)
   const complete = signedIn && isTrackComplete(track, progress)
   const items = trackItems(track)

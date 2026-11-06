@@ -1,3 +1,4 @@
+import { OPEN_ACCESS } from '../config'
 import { getTrack, trackItems } from '../data/tracks'
 import type { Track } from '../data/types'
 
@@ -30,6 +31,7 @@ export function missingPrerequisites(track: Track, p: Progress) {
 }
 
 export function isTrackUnlocked(track: Track, p: Progress) {
+  if (OPEN_ACCESS) return true
   return missingPrerequisites(track, p).length === 0
 }
 
@@ -38,6 +40,7 @@ export function isTrackUnlocked(track: Track, p: Progress) {
  * A track the user already knows is fully open.
  */
 export function isItemUnlocked(track: Track, itemId: string, p: Progress) {
+  if (OPEN_ACCESS) return true
   if (!isTrackUnlocked(track, p)) return false
   if (p.isKnown(track.id)) return true
   const items = trackItems(track)

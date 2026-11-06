@@ -15,13 +15,24 @@ export type ProjectData = {
 
 const empty: ProjectData = { html: '', css: '', theme: null, title: '', idea: '' }
 
+/* Visitors who are not logged in keep their project in this browser. */
+const GUEST_KEY = 'learncoding-guest-project'
+
+function readGuest(): ProjectData {
+  try {
+    return { ...empty, ...JSON.parse(localStorage.getItem(GUEST_KEY) ?? '{}') }
+  } catch {
+    return empty
+  }
+}
+
 /**
  * The signed-in user's website project: its files (index.html + style.css)
  * and what it is about. Code saves automatically a moment after typing
  * stops; project details save right away.
  */
 export function useProject() {
-  const { user } = useAuth()
+  const { user, loading } = useAuth()
   const userId = user?.id
   const [data, setData] = useState<ProjectData>(empty)
   const [status, setStatus] = useState<SaveStatus>('loading')
@@ -34,7 +45,17 @@ export function useProject() {
   }, [userId])
 
   useEffect(() => {
-    if (!userId) return
+    if (loading) return
+    if (!userId) {
+      // Guest: load from this browser (in a microtask, so it is not set during render)
+      queueMicrotask(() => {
+        const guest = readGuest()
+        latest.current = guest
+        setData(guest)
+        setStatus('saved')
+      })
+      return
+    }
     const run = { cancelled: false }
     supabase
       .from('projects')
@@ -56,12 +77,21 @@ export function useProject() {
     return () => {
       run.cancelled = true
     }
-  }, [userId])
+  }, [userId, loading])
 
   const save = useCallback(async () => {
     pending.current = false
     window.clearTimeout(timer.current)
     setStatus('saving')
+    if (!owner.current) {
+      try {
+        localStorage.setItem(GUEST_KEY, JSON.stringify(latest.current))
+        setStatus('saved')
+      } catch {
+        setStatus('error')
+      }
+      return
+    }
     const { error } = await supabase
       .from('projects')
       .upsert({ user_id: owner.current, ...latest.current, updated_at: new Date().toISOString() }, { onConflict: 'user_id' })

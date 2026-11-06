@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { Link, NavLink, Outlet, useLocation } from 'react-router-dom'
 import { useAuth } from '../auth/AuthProvider'
+import { OPEN_ACCESS } from '../config'
 import ThemeToggle from './ThemeToggle'
 
 function Avatar({ name }: { name: string }) {
@@ -61,7 +62,7 @@ function Navbar() {
               {item.label}
             </NavLink>
           ))}
-          {user && (
+          {(user || OPEN_ACCESS) && (
             <NavLink to="/project" className={linkClass}>
               🌐 My website
             </NavLink>
@@ -113,7 +114,7 @@ function Navbar() {
       {open && (
         <div className="border-t border-line px-4 pb-4 md:hidden">
           <div className="flex flex-col py-2">
-            {user && (
+            {(user || OPEN_ACCESS) && (
               <Link to="/project" onClick={close} className="rounded-lg px-3 py-3 font-semibold text-fg hover:bg-surface">
                 🌐 My website
               </Link>
