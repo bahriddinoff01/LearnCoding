@@ -116,12 +116,12 @@ export const htmlPart1: Section[] = [
     ],
     project: {
       title: 'Start your website',
-      brief: 'This is the first page of your own website. Over the next sections you will keep adding to it, and in the CSS course you will make it beautiful. Start simple: introduce yourself.',
-      tips: ['Use your real name or a nickname.', 'Write a short bio: who you are and what you want to build.'],
+      brief: 'This is the first page of your own website. Over the next sections you will keep adding to it, and in the CSS course you will make it beautiful. Start simple: the name of your site and a short intro.',
+      tips: ['The <h1> is the name of your site: your name, your café, your blog…', 'The intro says in one or two sentences what visitors will find here.'],
       requirements: [
-        { label: 'An <h1> with your name', test: hasText('h1') },
-        { label: 'A paragraph introducing yourself', test: hasText('p') },
-        { label: 'Your bio is at least 10 words', test: (d) => (d.querySelector('p')?.textContent ?? '').trim().split(/\s+/).length >= 10 },
+        { label: 'An <h1> with the name of your site', test: hasText('h1') },
+        { label: 'An intro paragraph', test: hasText('p') },
+        { label: 'The intro is at least 10 words', test: (d) => (d.querySelector('p')?.textContent ?? '').trim().split(/\s+/).length >= 10 },
       ],
     },
   },
@@ -249,15 +249,15 @@ export const htmlPart1: Section[] = [
     ],
     project: {
       title: 'Give your site a real skeleton',
-      brief: 'Turn your page into a proper HTML document. Wrap your heading and bio in the full skeleton, and add the four things every page needs.',
-      tips: ['Keep your <h1> and bio, just move them inside <body>.', 'Make the title something like "Your Name — Personal Website".'],
+      brief: 'Turn your page into a proper HTML document. Wrap your heading and intro in the full skeleton, and add the four things every page needs.',
+      tips: ['Keep your <h1> and intro, just move them inside <body>.', 'Make the title the site name plus a short tagline, like "Brew & Bean — Coffee in Tashkent".'],
       requirements: [
         { label: 'Starts with <!DOCTYPE html>', test: codeMatches(/^\s*<!doctype html>/i) },
         { label: '<html> has a lang attribute', test: (d) => !!d.documentElement.getAttribute('lang')?.trim() },
         { label: 'Has <meta charset="UTF-8">', test: codeMatches(/<meta\s+charset=["']?utf-8/i) },
         { label: 'Has the viewport meta tag', test: has('meta[name="viewport"]') },
         { label: 'Has a descriptive <title>', test: (d) => d.title.trim().length >= 3 },
-        { label: 'Your <h1> and bio are inside <body>', test: (d) => !!d.querySelector('body h1') && !!d.querySelector('body p') },
+        { label: 'Your <h1> and intro are inside <body>', test: (d) => !!d.querySelector('body h1') && !!d.querySelector('body p') },
       ],
     },
   },
@@ -384,9 +384,9 @@ export const htmlPart1: Section[] = [
       },
     ],
     project: {
-      title: 'Add an "About me" section',
-      brief: 'Tell visitors more about yourself. Add an "About me" part under your intro, using what you learned about meaningful text.',
-      tips: ['Mention what you are learning, and use <strong> for the most important part.', 'A favorite quote in a <blockquote> adds personality.'],
+      title: 'Tell your story',
+      brief: 'Tell visitors more. Add a new part under your intro (an About section, the story behind your project, or a first post) using what you learned about meaningful text.',
+      tips: ['Use <strong> for the most important sentence.', 'A quote in a <blockquote> adds personality: a motto, a review, or a favorite saying.'],
       requirements: [
         { label: 'An <h2> heading (for example "About me")', test: hasText('h2') },
         { label: 'At least 2 more paragraphs (3 in total)', test: count('p', 3) },
@@ -528,11 +528,11 @@ export const htmlPart1: Section[] = [
       },
     ],
     project: {
-      title: 'Add your photo and links',
-      brief: 'Make your site feel personal. Add a photo of yourself (or an avatar) and links so visitors can find you elsewhere.',
+      title: 'Add images and links',
+      brief: 'Bring your site to life with an image, and add links so visitors can find you elsewhere and get in touch.',
       tips: [
-        'No photo yet? Use https://i.pravatar.cc/300 or https://picsum.photos/300.',
-        'Link to your GitHub, LinkedIn or Telegram. Open them in a new tab.',
+        'No image yet? Use https://picsum.photos/600/400 for a random photo.',
+        'Link to your social pages (Instagram, Telegram, GitHub…). Open them in a new tab.',
       ],
       requirements: [
         { label: 'An image with descriptive alt text', test: (d) => (d.querySelector('img')?.getAttribute('alt') ?? '').trim().length >= 3 },

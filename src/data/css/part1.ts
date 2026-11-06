@@ -139,7 +139,7 @@ export const cssPart1: Section[] = [
     ],
     project: {
       title: 'Connect your stylesheet',
-      brief: 'Time to make your website beautiful! Your site now has a style.css file. Link it in your <head>, then set the basics: a font and background for the whole page, and a color for your name.',
+      brief: 'Time to make your website beautiful! Your site now has a style.css file. Link it in your <head>, then set the basics: a font and background for the whole page, and a color for your site name.',
       tips: [
         'Add <link rel="stylesheet" href="style.css"> inside <head> in index.html.',
         'Switch to the style.css tab to write your CSS.',
@@ -282,7 +282,7 @@ export const cssPart1: Section[] = [
         { label: '<main> has a max-width', test: (d) => (style(d, 'main')?.maxWidth ?? 'none') !== 'none' },
         { label: '<main> is centered', test: (d) => { const s = style(d, 'main'); return !!s && px(s.marginLeft) > 0 && Math.abs(px(s.marginLeft) - px(s.marginRight)) < 2 } },
         { label: 'Your sections have padding', test: styleAtLeast('main section', 'paddingTop', 8) },
-        { label: 'Your photo has rounded corners', test: styleAtLeast('img', 'borderTopLeftRadius', 1) },
+        { label: 'Your images have rounded corners', test: styleAtLeast('img', 'borderTopLeftRadius', 1) },
       ],
     },
   },
@@ -395,7 +395,7 @@ export const cssPart1: Section[] = [
     project: {
       title: 'Make your text look professional',
       brief: 'Typography is most of design. Give your site a comfortable reading rhythm, a confident heading, and clean navigation links.',
-      tips: ['Try a Google Font for your name, like "Poppins" or "Playfair Display".', 'body { line-height: 1.6; } instantly improves readability.'],
+      tips: ['Try a Google Font for your site name, like "Poppins" or "Playfair Display".', 'body { line-height: 1.6; } instantly improves readability.'],
       requirements: [
         { label: 'Body text line-height is at least 1.4', test: (d) => { const s = style(d, 'p'); return !!s && px(s.lineHeight) / px(s.fontSize) >= 1.39 } },
         { label: 'Your <h1> is at least 32px', test: styleAtLeast('h1', 'fontSize', 32) },

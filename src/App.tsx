@@ -11,6 +11,7 @@ const AuthPage = lazy(() => import('./pages/AuthPage'))
 const FaqPage = lazy(() => import('./pages/FaqPage'))
 const HowItWorksPage = lazy(() => import('./pages/HowItWorksPage'))
 const LessonPage = lazy(() => import('./pages/LessonPage'))
+const ProjectHome = lazy(() => import('./pages/ProjectHome'))
 const ProjectPage = lazy(() => import('./pages/ProjectPage'))
 const QuizPage = lazy(() => import('./pages/QuizPage'))
 const TrackPage = lazy(() => import('./pages/TrackPage'))
@@ -36,6 +37,7 @@ export default function App() {
         <Route element={<ProtectedRoute />}>
           <Route path="tracks/:trackId" element={page(<TrackPage />)} />
           <Route path="tracks/:trackId/:sectionId/quiz" element={page(<QuizPage />)} />
+          <Route path="project" element={page(<ProjectHome />)} />
         </Route>
 
         <Route path="*" element={<NotFound />} />
@@ -44,7 +46,6 @@ export default function App() {
       {/* Lessons use the full screen for the editor, and need an account */}
       <Route element={<ProtectedRoute />}>
         <Route path="tracks/:trackId/:lessonId" element={page(<LessonPage />)} />
-        <Route path="project" element={page(<ProjectPage />)} />
         <Route path="project/:trackId/:sectionId" element={page(<ProjectPage />)} />
       </Route>
     </Routes>

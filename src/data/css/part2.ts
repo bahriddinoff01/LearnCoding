@@ -119,7 +119,7 @@ export const cssPart2: Section[] = [
     ],
     project: {
       title: 'Build a real navigation bar',
-      brief: 'Turn your header into a proper top bar: your name on one side, the menu on the other, with the menu links in a row.',
+      brief: 'Turn your header into a proper top bar: your site name on one side, the menu on the other, with the menu links in a row.',
       tips: [
         'header { display: flex; justify-content: space-between; align-items: center; }',
         'Remove the bullets: nav ul { list-style: none; display: flex; gap: 24px; }',
@@ -244,10 +244,10 @@ export const cssPart2: Section[] = [
       },
     ],
     project: {
-      title: 'Grid your skills and pin your header',
-      brief: 'Turn your skills list into a neat grid of cards, and make your header stay at the top while visitors scroll.',
+      title: 'Grid your content and pin your header',
+      brief: 'Turn a list on your site into a neat grid of cards, and make your header stay at the top while visitors scroll.',
       tips: [
-        'Give your skills list a class, then: .skills { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 12px; list-style: none; }',
+        'Give the list a class, then: .cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 12px; list-style: none; }',
         'header { position: sticky; top: 0; z-index: 10; }',
       ],
       requirements: [
@@ -366,7 +366,7 @@ export const cssPart2: Section[] = [
     ],
     project: {
       title: 'Make it responsive and alive',
-      brief: 'The final step! Make your site work beautifully on phones, and add small interactions that make it feel polished. After this, your personal website is complete.',
+      brief: 'The final step! Make your site work beautifully on phones, and add small interactions that make it feel polished. After this, your website is complete.',
       tips: [
         'Stack the header on phones: @media (max-width: 600px) { header { flex-direction: column; } }',
         'Add a smooth hover to links and buttons with transition.',

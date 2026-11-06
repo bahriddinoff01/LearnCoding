@@ -119,11 +119,11 @@ export const htmlPart2: Section[] = [
       },
     ],
     project: {
-      title: 'Show your skills',
-      brief: 'Add a "Skills" part to your site with a list of what you know or are learning, and a small table (for example your weekly learning plan or experience).',
-      tips: ['Mark what you are learning right now, like "CSS (learning)".', 'The table could show Day / Topic, or Year / What I did.'],
+      title: 'Organize information',
+      brief: 'Add a new part to your site that organizes information: a list of things, and a small table with rows and columns.',
+      tips: ['Give this part its own <h2> heading.', 'Tables are for data: prices, schedules, dates, scores.'],
       requirements: [
-        { label: 'A "Skills" heading', test: (d) => [...d.querySelectorAll('h2,h3')].some((h) => /skill/i.test(h.textContent!)) },
+        { label: 'At least 2 <h2> headings on the page', test: count('h2', 2) },
         { label: 'A list with at least 3 skills', test: (d) => [...d.querySelectorAll('ul, ol')].some((l) => l.querySelectorAll(':scope > li').length >= 3) },
         { label: 'A table with header cells', test: has('table th') },
         { label: 'The table has at least 2 data rows', test: (d) => [...d.querySelectorAll('table tr')].filter((r) => r.querySelector('td')).length >= 2 },
@@ -262,7 +262,7 @@ export const htmlPart2: Section[] = [
     ],
     project: {
       title: 'Add a contact form',
-      brief: 'Let visitors send you a message. Add a contact form to your site with everything you learned: labels, the right input types and validation.',
+      brief: 'Let visitors reach you. Add a form to your site (contact, booking, sign-up) with everything you learned: labels, the right input types and validation.',
       tips: ['Give the form (or its section) id="contact" so you can link to it later.', 'A message box should be a <textarea>.'],
       requirements: [
         { label: 'A <form>', test: has('form') },
@@ -409,8 +409,8 @@ export const htmlPart2: Section[] = [
       title: 'Give your site a professional structure',
       brief: 'Reorganize your site the way professionals do. Wrap the top in <header> with a navigation menu, put your content in <main> with a <section> for each part, and end with a <footer>.',
       tips: [
-        'Sections: about, skills and contact, each with an id the menu links to.',
-        'Your footer can have "© 2026 Your Name".',
+        'One section for each part you have built so far (for example about, menu and contact), each with an id the menu links to.',
+        'Your footer can have a copyright line, like "&copy; 2026 Brew & Bean".',
       ],
       requirements: [
         { label: 'A <header> containing your <h1>', test: has('header h1') },
@@ -548,8 +548,8 @@ export const htmlPart2: Section[] = [
     ],
     project: {
       title: 'Get your site ready to publish',
-      brief: 'Finish the HTML version of your website. Add a meta description and sharing tags so it looks great in search and on Telegram, and embed a video or map that says something about you.',
-      tips: ['Embed a video you made, a talk you liked, or a map of your city.', 'Your HTML site is complete after this. Next, the CSS course makes it beautiful!'],
+      brief: 'Finish the HTML version of your website. Add a meta description and sharing tags so it looks great in search and on Telegram, and embed a video or map that fits your site.',
+      tips: ['A YouTube video or a map (OpenStreetMap or Google Maps) works great.', 'Your HTML site is complete after this. Next, the CSS course makes it beautiful!'],
       requirements: [
         { label: 'A meta description (20+ characters)', test: (d) => (d.querySelector('meta[name="description"]')?.getAttribute('content') ?? '').length >= 20 },
         { label: 'An og:title tag', test: hasAttr('meta[property="og:title"]', 'content') },

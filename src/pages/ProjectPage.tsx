@@ -1,28 +1,26 @@
 import Editor from '@monaco-editor/react'
 import { useEffect, useMemo, useState } from 'react'
-import { Link, useParams } from 'react-router-dom'
+import { Link, Navigate, useParams } from 'react-router-dom'
 import { Spinner } from '../auth/ProtectedRoute'
 import InstructorChat from '../components/InstructorChat'
 import { Logo } from '../components/Layout'
 import ThemeToggle from '../components/ThemeToggle'
 import { starterSiteHtml } from '../data/starterSite'
+import { getTheme } from '../data/themes'
 import { itemPath, projectTracks, trackItems } from '../data/tracks'
-import type { Lesson, Section, Track } from '../data/types'
-import { isItemUnlocked } from '../lib/access'
+import type { Lesson } from '../data/types'
 import { useProgress } from '../lib/progress'
 import { useProject, type SaveStatus } from '../lib/project'
+import { allSteps, isStepDone, isStepOpen, openInNewTab, stepId, stepPath } from '../lib/projectSteps'
 import { projectCode, projectDoc, runChecks } from '../lib/render'
 import { useTheme } from '../lib/theme'
 
-type Step = { track: Track; section: Section; number: number }
-
-/** Every project step across the tracks, numbered in order (they build one site). */
-function allSteps(): Step[] {
-  let n = 0
-  return projectTracks().flatMap((track) => track.sections.map((section) => ({ track, section, number: ++n })))
-}
-
-const stepId = (s: Step) => `project-${s.section.id}`
+type View = 'code' | 'split' | 'preview'
+const views: { id: View; label: string }[] = [
+  { id: 'code', label: 'Code' },
+  { id: 'split', label: 'Split' },
+  { id: 'preview', label: 'Preview' },
+]
 
 function SaveBadge({ status }: { status: SaveStatus }) {
   const map: Record<SaveStatus, [string, string]> = {
@@ -56,15 +54,15 @@ export default function ProjectPage() {
   const [aiOpen, setAiOpen] = useState(false)
   const [showSteps, setShowSteps] = useState(false)
   const [preview, setPreview] = useState({ html: '', css: '' })
+  const [view, setView] = useState<View>('split')
 
-  // The step from the address, or the learner's next unfinished step
-  const step =
-    steps.find((s) => s.track.id === trackId && s.section.id === sectionId) ??
-    steps.find((s) => !progress.isDone(s.track.id, stepId(s)) && isItemUnlocked(s.track, stepId(s), progress)) ??
-    steps.at(-1)!
+  const found = steps.find((s) => s.track.id === trackId && s.section.id === sectionId)
+  const step = found ?? steps[0]
 
-  const unlocked = isItemUnlocked(step.track, stepId(step), progress)
-  const done = progress.isDone(step.track.id, stepId(step))
+  const unlocked = isStepOpen(step, progress)
+  const done = isStepDone(step, progress)
+  const projectTheme = getTheme(project.theme)
+  const themeIdea = projectTheme?.ideas[step.section.id]
   const { requirements } = step.section.project
   const items = trackItems(step.track)
   const afterStep = items[items.findIndex((i) => i.id === stepId(step)) + 1]
@@ -85,6 +83,8 @@ export default function ProjectPage() {
   }, [project.html, project.css])
 
   if (project.status === 'loading') return <Spinner />
+  // No project chosen yet, or an unknown step: go to the project page to pick a theme
+  if (!project.theme || !found) return <Navigate to="/project" replace />
 
   async function check() {
     setChecking(true)
@@ -113,7 +113,10 @@ export default function ProjectPage() {
         <div className="flex min-w-0 items-center gap-3">
           <Logo />
           <span className="hidden text-faint sm:inline">/</span>
-          <span className="hidden truncate text-sm font-semibold sm:inline">🌐 My website</span>
+          <Link to="/project" className="hidden min-w-0 items-center gap-2 truncate text-sm font-semibold hover:text-brand-600 sm:flex" title="Project overview">
+            <span>{projectTheme?.icon}</span>
+            <span className="truncate">{project.title}</span>
+          </Link>
           <SaveBadge status={project.status} />
         </div>
         <div className="flex items-center gap-2">
@@ -178,13 +181,13 @@ export default function ProjectPage() {
             {showSteps && (
               <ol className="space-y-1 rounded-xl border border-line p-2">
                 {steps.map((s) => {
-                  const sDone = progress.isDone(s.track.id, stepId(s))
-                  const sOpen = isItemUnlocked(s.track, stepId(s), progress)
+                  const sDone = isStepDone(s, progress)
+                  const sOpen = isStepOpen(s, progress)
                   const current = s === step
                   return (
                     <li key={stepId(s) + s.track.id}>
                       <Link
-                        to={`/project/${s.track.id}/${s.section.id}`}
+                        to={stepPath(s)}
                         onClick={() => setShowSteps(false)}
                         className={`flex items-center gap-3 rounded-lg px-3 py-2 text-sm ${current ? 'bg-brand-600 text-white' : 'hover:bg-surface'}`}
                       >
@@ -235,6 +238,22 @@ export default function ProjectPage() {
             )}
 
             <p className="leading-relaxed text-fg-soft">{step.section.project.brief}</p>
+
+            {themeIdea ? (
+              <div className="rounded-xl border border-brand-500/30 bg-brand-500/10 p-4 text-sm">
+                <div className="font-semibold">
+                  {projectTheme?.icon} Idea for your {projectTheme?.name.toLowerCase()}
+                </div>
+                <p className="mt-1 text-fg-soft">{themeIdea}</p>
+              </div>
+            ) : (
+              project.idea && (
+                <div className="rounded-xl border border-brand-500/30 bg-brand-500/10 p-4 text-sm">
+                  <div className="font-semibold">✨ Your idea</div>
+                  <p className="mt-1 text-fg-soft">"{project.idea}" How could this step fit it?</p>
+                </div>
+              )
+            )}
 
             <div className="space-y-2">
               {step.section.project.tips.map((t) => (
@@ -309,8 +328,31 @@ export default function ProjectPage() {
         </aside>
 
         {/* Editor + preview */}
-        <section className="grid min-h-[640px] grid-rows-2 lg:min-h-0">
-          <div className="flex min-h-0 flex-col border-b border-line">
+        <section className="flex min-h-[640px] flex-col lg:min-h-0">
+          {/* View switch: code only, both, or preview only */}
+          <div className="flex h-11 shrink-0 items-center justify-between gap-2 border-b border-line px-3">
+            <div className="flex gap-1 rounded-lg bg-surface p-1" role="tablist" aria-label="Workspace view">
+              {views.map((v) => (
+                <button
+                  key={v.id}
+                  role="tab"
+                  aria-selected={view === v.id}
+                  onClick={() => setView(v.id)}
+                  className={`rounded-md px-3 py-1 text-xs transition ${view === v.id ? 'bg-elevated font-semibold shadow-sm' : 'text-muted hover:text-fg'}`}
+                >
+                  {v.label}
+                </button>
+              ))}
+            </div>
+            <button
+              onClick={() => openInNewTab(projectDoc(project.html, project.css))}
+              className="rounded-lg px-3 py-1.5 text-xs text-muted hover:bg-surface hover:text-fg"
+            >
+              ↗ Open in new tab
+            </button>
+          </div>
+
+          <div className={`min-h-0 flex-col border-b border-line ${view === 'preview' ? 'hidden' : 'flex'} ${view === 'code' ? 'flex-1' : 'basis-1/2'}`}>
             <div className="flex h-10 items-end gap-1 border-b border-line bg-surface px-2">
               {(['html', 'css'] as const).map((f) => (
                 <button
@@ -344,9 +386,9 @@ export default function ProjectPage() {
               />
             </div>
           </div>
-          <div className="flex min-h-0 flex-col">
-            <div className="flex h-9 items-center justify-between border-b border-line bg-surface px-4 text-xs text-muted">
-              <span>Live preview · your website</span>
+          <div className={`min-h-0 flex-col ${view === 'code' ? 'hidden' : 'flex'} ${view === 'preview' ? 'flex-1' : 'basis-1/2'}`}>
+            <div className="flex h-9 items-center border-b border-line bg-surface px-4 text-xs text-muted">
+              Live preview · {project.title}
             </div>
             <iframe title="Your website" sandbox="" srcDoc={projectDoc(preview.html, preview.css)} className="min-h-0 flex-1 bg-white" />
           </div>
