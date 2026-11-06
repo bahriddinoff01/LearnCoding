@@ -1,15 +1,15 @@
 // AI instructor for LearnCoding lessons and website steps.
-// Runs as a Supabase Edge Function so the Anthropic API key never reaches the browser.
+// Runs as a Supabase Edge Function so the AI provider's API key never reaches the browser.
 //
-// Secrets (Supabase dashboard -> Edge Functions -> Secrets):
-//   ANTHROPIC_API_KEY  required
-//   TUTOR_MODEL        optional, defaults to claude-opus-5-5 (e.g. claude-haiku-5-5 to save cost)
+// Secrets (Supabase dashboard -> Edge Functions -> Secrets). Set ONE provider key:
+//   GEMINI_API_KEY     Google Gemini (free tier available at aistudio.google.com). Used first if set.
+//   ANTHROPIC_API_KEY  Claude (console.anthropic.com). Used when no Gemini key is set.
+//   TUTOR_MODEL        optional model override. Defaults: gemini-flash-latest / claude-opus-5-5
 // SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY are provided by Supabase automatically.
 
 import Anthropic from 'npm:@anthropic-ai/sdk@1.6.0'
+import { ApiError as GeminiApiError, GoogleGenAI } from 'npm:@google/genai@2.32.0'
 import { createClient } from 'npm:@supabase/supabase-js@2.119.0'
-
-const MODEL = Deno.env.get('TUTOR_MODEL') || 'claude-opus-5-5'
 
 // Messages per day
 const DAILY_LIMIT = { user: 30, guest: 10 }
@@ -29,7 +29,7 @@ const cors = {
 const json = (body: unknown, status = 200) =>
   new Response(JSON.stringify(body), { status, headers: { ...cors, 'Content-Type': 'application/json' } })
 
-// The teaching rules. Kept identical on every request so it can be cached.
+// The teaching rules. Kept identical on every request so providers can cache it.
 const SYSTEM = `You are the AI instructor on LearnCoding, a website where beginners learn HTML and CSS through short lessons and by building their own website step by step.
 
 Your job is to help learners figure things out themselves. You never do the work for them.
@@ -101,12 +101,81 @@ async function sha256(text: string) {
   return Array.from(bytes, (x) => x.toString(16).padStart(2, '0')).join('')
 }
 
+type Ask = { history: Turn[]; question: string }
+type AiResult = { ok: true; reply: string } | { ok: false; error: 'not_configured' | 'busy' | 'ai_error' }
+
+const REFUSED = "I can't help with that one. Let's get back to the lesson: which check would you like help with?"
+const EMPTY = 'Sorry, I lost my train of thought. Could you ask again?'
+
+/** Google Gemini. */
+async function askGemini(apiKey: string, model: string, { history, question }: Ask): Promise<AiResult> {
+  const ai = new GoogleGenAI({ apiKey })
+  try {
+    const response = await ai.models.generateContent({
+      model,
+      contents: [
+        ...history.map((t) => ({ role: t.role === 'assistant' ? 'model' : 'user', parts: [{ text: t.text }] })),
+        { role: 'user', parts: [{ text: question }] },
+      ],
+      config: { systemInstruction: SYSTEM, maxOutputTokens: 2048 },
+    })
+    // Gemini returns no text when its safety filters block a reply
+    return { ok: true, reply: response.text?.trim() || (response.promptFeedback?.blockReason ? REFUSED : EMPTY) }
+  } catch (error) {
+    if (error instanceof GeminiApiError) {
+      console.error('Gemini API error', error.status, error.message)
+      if (error.status === 429) return { ok: false, error: 'busy' } // free-tier quota reached
+      if ([400, 401, 403].includes(error.status) && /api key|permission|unauthenticated/i.test(error.message)) {
+        return { ok: false, error: 'not_configured' }
+      }
+      return { ok: false, error: 'ai_error' }
+    }
+    console.error('Gemini error', error)
+    return { ok: false, error: 'ai_error' }
+  }
+}
+
+/** Claude (Anthropic). */
+async function askClaude(apiKey: string, model: string, { history, question }: Ask): Promise<AiResult> {
+  const client = new Anthropic({ apiKey })
+  try {
+    const response = await client.beta.messages.create({
+      model,
+      max_tokens: 2048,
+      // If a safety check declines a request, the API retries it on a suitable model automatically
+      betas: ['server-side-fallback-2026-07-01'],
+      fallbacks: 'default',
+      // Short tutoring replies don't need deep reasoning
+      output_config: { effort: 'low' },
+      system: [{ type: 'text', text: SYSTEM, cache_control: { type: 'ephemeral' } }],
+      messages: [
+        ...history.map((t) => ({ role: t.role, content: t.text })),
+        { role: 'user' as const, content: question },
+      ],
+    })
+    if (response.stop_reason === 'refusal') return { ok: true, reply: REFUSED }
+    const reply = response.content
+      .flatMap((block) => (block.type === 'text' ? [block.text] : []))
+      .join('\n')
+      .trim()
+    return { ok: true, reply: reply || EMPTY }
+  } catch (error) {
+    if (error instanceof Anthropic.AuthenticationError) return { ok: false, error: 'not_configured' }
+    if (error instanceof Anthropic.RateLimitError) return { ok: false, error: 'busy' }
+    if (error instanceof Anthropic.APIError) console.error('Claude API error', error.status, error.message)
+    else console.error('Claude error', error)
+    return { ok: false, error: 'ai_error' }
+  }
+}
+
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: cors })
   if (req.method !== 'POST') return json({ error: 'method_not_allowed' }, 405)
 
-  const apiKey = Deno.env.get('ANTHROPIC_API_KEY')
-  if (!apiKey) return json({ error: 'not_configured' }, 503)
+  // Read the keys on every request, so adding a secret takes effect right away
+  const geminiKey = Deno.env.get('GEMINI_API_KEY')
+  const anthropicKey = Deno.env.get('ANTHROPIC_API_KEY')
+  if (!geminiKey && !anthropicKey) return json({ error: 'not_configured' }, 503)
 
   let body: Body
   try {
@@ -140,47 +209,28 @@ Deno.serve(async (req) => {
   const remaining = Math.max(0, limit - Number(used))
   if (Number(used) > limit) return json({ error: 'limit', remaining: 0 }, 429)
 
-  // Short chat history (text only), oldest first, starting with the learner
-  const history: Anthropic.Beta.BetaMessageParam[] = (body.history ?? [])
-    .slice(-MAX_HISTORY)
-    .filter((t) => (t.role === 'user' || t.role === 'assistant') && typeof t.text === 'string' && t.text.trim())
-    .map((t) => ({ role: t.role, content: clip(t.text, 1500) }))
-  while (history.length && history[0].role !== 'user') history.shift()
-
-  const client = new Anthropic({ apiKey })
-  try {
-    const response = await client.beta.messages.create({
-      model: MODEL,
-      max_tokens: 2048,
-      // If a safety check declines a request, the API retries it on a suitable model automatically
-      betas: ['server-side-fallback-2026-07-01'],
-      fallbacks: 'default',
-      // Short tutoring replies don't need deep reasoning
-      output_config: { effort: 'low' },
-      system: [{ type: 'text', text: SYSTEM, cache_control: { type: 'ephemeral' } }],
-      messages: [...history, { role: 'user', content: contextMessage(body) }],
-    })
-
-    if (response.stop_reason === 'refusal') {
-      return json({
-        reply: "I can't help with that one. Let's get back to the lesson: which check would you like help with?",
-        remaining,
-      })
-    }
-
-    const reply = response.content
-      .flatMap((block) => (block.type === 'text' ? [block.text] : []))
-      .join('\n')
-      .trim()
-    return json({ reply: reply || 'Sorry, I lost my train of thought. Could you ask again?', remaining, level: body.level ?? null })
-  } catch (error) {
-    if (error instanceof Anthropic.AuthenticationError) return json({ error: 'not_configured' }, 503)
-    if (error instanceof Anthropic.RateLimitError) return json({ error: 'busy' }, 503)
-    if (error instanceof Anthropic.APIError) {
-      console.error('Claude API error', error.status, error.message)
-      return json({ error: 'ai_error' }, 502)
-    }
-    console.error('Tutor error', error)
-    return json({ error: 'server_error' }, 500)
+  // Short chat history (text only), oldest first. Turns must alternate
+  // learner / instructor, start with the learner and end with the instructor.
+  const history: Turn[] = []
+  for (const t of (body.history ?? []).slice(-MAX_HISTORY)) {
+    if ((t.role !== 'user' && t.role !== 'assistant') || typeof t.text !== 'string' || !t.text.trim()) continue
+    const text = clip(t.text, 1500)
+    const last = history.at(-1)
+    if (last?.role === t.role) last.text += `\n${text}`
+    else history.push({ role: t.role, text })
   }
+  while (history.length && history[0].role !== 'user') history.shift()
+  while (history.length && history.at(-1)!.role !== 'assistant') history.pop()
+
+  const ask = { history, question: contextMessage(body) }
+  const override = Deno.env.get('TUTOR_MODEL')
+  const result = geminiKey
+    ? await askGemini(geminiKey, override || 'gemini-flash-latest', ask)
+    : await askClaude(anthropicKey!, override || 'claude-opus-5-5', ask)
+
+  if (!result.ok) {
+    const status = result.error === 'ai_error' ? 502 : 503
+    return json({ error: result.error }, status)
+  }
+  return json({ reply: result.reply, remaining, level: body.level ?? null })
 })

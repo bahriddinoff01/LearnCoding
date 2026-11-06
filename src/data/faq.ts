@@ -64,6 +64,10 @@ export const faqGroups: FaqGroup[] = [
         a: 'There are four: a nudge, the concept behind it, a direction pointing at your code, and a small example on a different problem. You only go to the next level if you still need help.',
       },
       {
+        q: 'Who sees what I send to the AI instructor?',
+        a: 'Your question, your code and the lesson details are sent to Google Gemini to write a reply. On the free tier we use while testing, Google may use this to improve its products, so please do not type personal information into the chat.',
+      },
+      {
         q: 'Is there a limit on hints?',
         a: 'Yes, a daily number of hints. It keeps the service free and encourages you to think first before asking.',
       },

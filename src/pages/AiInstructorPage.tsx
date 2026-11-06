@@ -136,7 +136,7 @@ export default function AiInstructorPage() {
           </div>
         </div>
         <p className="mt-4 text-center text-xs text-subtle">
-          Powered by Claude. If the AI can't be reached, the chat switches to simpler built-in hints.
+          Powered by Google Gemini. If the AI can't be reached, the chat switches to simpler built-in hints.
         </p>
       </section>
 
