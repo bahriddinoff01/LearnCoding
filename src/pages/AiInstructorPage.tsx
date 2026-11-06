@@ -106,7 +106,7 @@ export default function AiInstructorPage() {
     <>
       <PageHeader
         tone="fuchsia"
-        eyebrow="AI Instructor · Preview"
+        eyebrow="AI Instructor"
         title={
           <>
             A mentor that helps you <GradientText>think</GradientText>, not copy
@@ -136,7 +136,7 @@ export default function AiInstructorPage() {
           </div>
         </div>
         <p className="mt-4 text-center text-xs text-subtle">
-          Preview: replies are simulated for now. The real instructor will use an AI model with the same rules.
+          Powered by Claude. If the AI can't be reached, the chat switches to simpler built-in hints.
         </p>
       </section>
 
@@ -222,7 +222,7 @@ export default function AiInstructorPage() {
         </div>
         <div className="mt-10 rounded-2xl border border-line bg-surface p-6 text-center sm:p-8">
           <div className="text-2xl">⏳</div>
-          <div className="mt-3 font-semibold">10 hints a day</div>
+          <div className="mt-3 font-semibold">A daily message limit</div>
           <p className="mx-auto mt-2 max-w-lg text-sm text-muted">
             A daily limit keeps LearnCoding free and nudges you to try on your own first. Most tasks need only one or two
             hints.

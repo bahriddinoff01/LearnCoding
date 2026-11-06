@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, type FormEvent } from 'react'
+import { Fragment, useEffect, useRef, useState, type FormEvent, type ReactNode } from 'react'
 import {
   focusCheck,
   getHint,
@@ -8,23 +8,54 @@ import {
   type InstructorContext,
   type Reply,
 } from '../lib/mockInstructor'
+import { askTutor, type ProjectInfo, type TutorTurn } from '../lib/tutor'
 import { AiAvatar } from './ui'
 
-type Message = { from: 'you' | 'ai' } & Reply
+type Message = { from: 'you' | 'ai'; offline?: boolean } & Reply
 
 const suggestions = ["I'm stuck", 'Why is my check failing?', 'Just give me the code 😅']
 
+/** Shows `inline code` and ```code blocks``` from the instructor's replies. */
+function RichText({ text }: { text: string }) {
+  const parts: ReactNode[] = []
+  text.split(/```(?:[a-z]*\n)?/i).forEach((chunk, i) => {
+    if (i % 2 === 1) {
+      parts.push(
+        <pre key={i} className="my-2 overflow-x-auto rounded-lg bg-slate-900 p-3 font-mono text-xs text-emerald-300">
+          {chunk.trim()}
+        </pre>,
+      )
+      return
+    }
+    parts.push(
+      <Fragment key={i}>
+        {chunk.split(/(`[^`\n]+`)/).map((piece, j) =>
+          /^`[^`]+`$/.test(piece) ? (
+            <code key={j} className="rounded bg-black/10 px-1 py-0.5 font-mono text-[0.85em] dark:bg-white/10">
+              {piece.slice(1, -1)}
+            </code>
+          ) : (
+            piece
+          ),
+        )}
+      </Fragment>,
+    )
+  })
+  return <span className="whitespace-pre-wrap">{parts}</span>
+}
+
 /**
- * Chat with the AI instructor. Used in the lesson panel and on the demo page.
- * Replies are simulated for now (see lib/mockInstructor.ts).
+ * Chat with the AI instructor, used in lessons, website steps and the demo page.
+ * Replies come from Claude through the "tutor" server function. If it isn't
+ * available, simulated hints (lib/mockInstructor.ts) keep the chat working.
  */
 export default function InstructorChat({
   ctx,
-  dailyHints = 10,
+  project,
   className = '',
 }: {
   ctx: InstructorContext
-  dailyHints?: number
+  project?: ProjectInfo
   className?: string
 }) {
   const [messages, setMessages] = useState<Message[]>([
@@ -34,7 +65,9 @@ export default function InstructorChat({
     },
   ])
   const [nextLevel, setNextLevel] = useState<HintLevel>(1)
-  const [hintsLeft, setHintsLeft] = useState(dailyHints)
+  // Messages left today, as reported by the server (unknown until the first reply)
+  const [hintsLeft, setHintsLeft] = useState<number | null>(null)
+  const [mode, setMode] = useState<'unknown' | 'live' | 'offline'>('unknown')
   const [typing, setTyping] = useState(false)
   const [input, setInput] = useState('')
   const [focusIndex, setFocusIndex] = useState<number | null>(null)
@@ -51,31 +84,37 @@ export default function InstructorChat({
     listRef.current?.scrollTo({ top: listRef.current.scrollHeight, behavior: 'smooth' })
   }, [messages, typing])
 
-  function respond(userText: string, makeReply: () => Reply) {
+  async function respond(userText: string, request: { level: HintLevel } | { message: string }, offlineReply: () => Reply) {
     if (typing) return
-    if (hintsLeft <= 0) {
-      setMessages((m) => [
-        ...m,
-        { from: 'you', text: userText },
-        { from: 'ai', text: "You've used all your hints for today. Try re-reading the lesson, and I'll be back tomorrow! 🌙" },
-      ])
-      return
-    }
+    // The conversation so far, so the instructor remembers what it already said
+    const history: TutorTurn[] = messages.map((m) => ({ role: m.from === 'ai' ? 'assistant' : 'user', text: m.text }))
     setMessages((m) => [...m, { from: 'you', text: userText }])
     setTyping(true)
-    // A short pause so it feels like a conversation
-    setTimeout(() => {
-      const reply = makeReply()
-      setMessages((m) => [...m, { from: 'ai', ...reply }])
-      setHintsLeft((h) => h - 1)
-      if (reply.level && reply.level >= nextLevel && reply.level < 4) setNextLevel((reply.level + 1) as HintLevel)
-      setTyping(false)
-    }, 700 + Math.random() * 500)
+
+    const result = await askTutor(ctx, history, request, project)
+    const level = 'level' in request ? request.level : undefined
+
+    if (result.ok) {
+      setMode('live')
+      setHintsLeft(result.remaining)
+      setMessages((m) => [...m, { from: 'ai', text: result.reply, level }])
+    } else if (result.reason === 'limit') {
+      setHintsLeft(0)
+      setMessages((m) => [
+        ...m,
+        { from: 'ai', text: "You've used all your AI messages for today. Try re-reading the lesson, and I'll be back tomorrow! 🌙" },
+      ])
+    } else {
+      // The real instructor isn't reachable: answer with a simulated hint instead
+      setMode('offline')
+      setMessages((m) => [...m, { from: 'ai', offline: true, ...offlineReply() }])
+    }
+    if (level && level >= nextLevel && level < 4) setNextLevel((level + 1) as HintLevel)
+    setTyping(false)
   }
 
   function askLevel(level: HintLevel) {
-    const h = hintLevels[level - 1]
-    respond(h.ask, () => getHint(level, ctx))
+    respond(hintLevels[level - 1].ask, { level }, () => getHint(level, ctx))
   }
 
   function send(e?: FormEvent, text = input) {
@@ -83,7 +122,7 @@ export default function InstructorChat({
     const t = text.trim()
     if (!t) return
     setInput('')
-    respond(t, () => getReply(t, ctx, nextLevel))
+    respond(t, { message: t }, () => getReply(t, ctx, nextLevel))
   }
 
   return (
@@ -95,22 +134,32 @@ export default function InstructorChat({
           <div>
             <div className="flex items-center gap-2 text-sm font-semibold">
               AI Instructor
-              <span className="rounded-full bg-amber-400/20 px-2 py-0.5 text-[10px] font-medium text-amber-700 dark:text-amber-300">
-                Preview
-              </span>
+              {mode === 'live' && (
+                <span className="rounded-full bg-emerald-500/15 px-2 py-0.5 text-[10px] font-medium text-emerald-700 dark:text-emerald-300">
+                  ● Live
+                </span>
+              )}
+              {mode === 'offline' && (
+                <span
+                  className="rounded-full bg-amber-400/20 px-2 py-0.5 text-[10px] font-medium text-amber-700 dark:text-amber-300"
+                  title="The AI is not reachable right now, so these are simpler built-in hints"
+                >
+                  Offline hints
+                </span>
+              )}
             </div>
             <div className="text-xs text-subtle">Hints, not answers</div>
           </div>
         </div>
-        <span
-          className={`rounded-full px-3 py-1 text-xs ${
-            hintsLeft > 3
-              ? 'bg-emerald-500/15 text-emerald-700 dark:text-emerald-300'
-              : 'bg-rose-500/15 text-rose-700 dark:text-rose-300'
-          }`}
-        >
-          {hintsLeft} hints left
-        </span>
+        {hintsLeft !== null && (
+          <span
+            className={`rounded-full px-3 py-1 text-xs ${
+              hintsLeft > 3 ? 'bg-emerald-500/15 text-emerald-700 dark:text-emerald-300' : 'bg-rose-500/15 text-rose-700 dark:text-rose-300'
+            }`}
+          >
+            {hintsLeft} left today
+          </span>
+        )}
       </div>
 
       {/* Messages */}
@@ -126,7 +175,7 @@ export default function InstructorChat({
                   </div>
                 )}
                 <div className="rounded-2xl rounded-tl-sm bg-surface-2 px-4 py-3 text-sm leading-relaxed text-fg-soft">
-                  {m.text}
+                  <RichText text={m.text} />
                   {m.code && (
                     <pre className="mt-3 overflow-x-auto rounded-lg bg-slate-900 p-3 font-mono text-xs text-emerald-300">
                       {m.code}

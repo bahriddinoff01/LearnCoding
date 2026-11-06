@@ -101,7 +101,11 @@ export default function ProjectPage() {
     id: stepId(step),
     title: step.section.project.title,
     minutes: 0,
-    content: [{ type: 'text', text: step.section.project.brief }, ...step.section.project.tips.map((t) => ({ type: 'tip' as const, text: t }))],
+    content: [
+      { type: 'text', text: step.section.project.brief },
+      ...step.section.project.tips.map((t) => ({ type: 'tip' as const, text: t })),
+      ...(themeIdea ? [{ type: 'tip' as const, text: `Idea for this theme: ${themeIdea}` }] : []),
+    ],
     task: step.section.project.brief,
     starterCode: '',
     checks: requirements,
@@ -159,6 +163,7 @@ export default function ProjectPage() {
         <InstructorChat
           key={stepId(step)}
           ctx={{ lesson: stepAsLesson, code: projectCode(project.html, project.css), results }}
+          project={{ theme: projectTheme?.name, title: project.title, idea: project.idea }}
           className="h-full [&>div:first-child]:pr-12"
         />
       </div>
